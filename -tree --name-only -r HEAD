@@ -1,0 +1,65 @@
+[33m31fab6a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Subo main.py e index.html para GitHub Pages
+[33m9f0c452[m[33m ([m[1;31morigin/main[m[33m)[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33mebcce12[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m1583360[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33mfded8e7[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m46fedc2[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m9ba3e05[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33mc5996e1[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m74b23fc[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m872fa67[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m6178f9b[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m877e446[m feat: agregar contexto_anterior y es_seguimiento al modelo ChatRequest
+[33m74ee6c2[m debug: agregar logging detallado para datatype mismatch
+[33m0e0b0dc[m debug: agregar logging detallado para datatype mismatch
+[33me2e7c00[m debug: agregar logging detallado para datatype mismatch
+[33m1559ffe[m debug: agregar logging detallado para datatype mismatch
+[33m0823fd0[m fix: corrección tipos de datos en carga de propiedades
+[33m3b07aee[m fix: corrección tipos de datos en carga de propiedades
+[33mbc67d24[m fix: corrección carga propiedades y detección de filtros
+[33m09e52cd[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33m29928b1[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33me530bdf[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33m1dda80b[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33mb64280f[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33m82faac3[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33m608e2dd[m Feat: Crear prompt específico para preguntas de seguimiento con todos los detalles de propiedades
+[33m39f3f85[m Feat: Mejorar detección de seguimiento y evitar búsquedas innecesarias con contexto
+[33m4113c07[m Fix: Agregar logs extensivos de debug para diagnosticar problema de contexto
+[33mcc26d7c[m Feat: Agregar sistema de contexto y seguimiento para conversaciones naturales
+[33m8bcc619[m Feat: Agregar sistema de contexto y seguimiento para conversaciones naturales
+[33md403043[m Fix: Mejorar detección de preguntas de seguimiento con patrones más flexibles
+[33mdbeb590[m Fix: Mejorar detección de preguntas de seguimiento con patrones más flexibles
+[33mc616945[m Fix: Agregar mensaje de seguimiento después de búsquedas exitosas
+[33m5d4cbc2[m Feat: Agregar sistema de contexto y seguimiento para conversaciones más naturales
+[33m38e3553[m Fix: Mejorar mensajes automáticos de filtros para evitar interpretaciones erróneas de Gemini
+[33m8a580cc[m Mejorar manejo de respuestas del backend - mostrar conteo de propiedades
+[33m805d5fe[m Mejorar manejo de respuestas del backend - mostrar conteo de propiedades
+[33ma1efae2[m Fix: remove duplicate import, function is defined locally
+[33m7046078[m Fix: use correct environment variable name GEMINI_API_KEYS
+[33m995bf09[m Fix imports and add environment debugging
+[33m6b39082[m Fix: use ARG to pass environment variable in Docker
+[33m6f4b30e[m Add MODEL alias for compatibility
+[33mf11fd53[m Fix: import MODEL and API_KEYS in Gemini function
+[33m6f88463[m Fix: complete Gemini function with proper code
+[33m1ef8c64[m Add detailed error logging for Gemini API
+[33ma604782[m Fix: pass environment variable to Docker container
+[33m5b7f58e[m Fix Gemini API connection and update frontend URL
+[33m954a287[m Update API URL to new backend
+[33m65dc3c1[m Fix Dockerfile encoding
+[33mb070eb3[m Merge branch 'main' of https://github.com/artaronamail-debug/CHATGPT
+[33m1e4ec4a[m Add files via upload
+[33m36ae5a0[m Add Dockerfile for Python 3.11
+[33m229027d[m Merge branch 'main' of https://github.com/artaronamail-debug/CHATGPT
+[33mcdff915[m Local changes for Render compatibility
+[33mf0385a1[m Add runtime.txt for Python 3.11 compatibility
+[33m44c8bf2[m Add files via upload
+[33m789d483[m Cambios locales antes del rebase
+[33m318b019[m Add files via upload
+[33mcfca292[m Resolve merge conflict in requirements.txt
+[33m030b4a1[m Fix: use pydantic 2.4.2 for Render compatibility
+[33mfc6e0cc[m Fix: use pydantic 2.4.2 for Render compatibility
+[33me209f8e[m Add files via upload
+[33m106253e[m Fix: update google-generativeai to 0.5.0
+[33m7b03357[m Fix requirements.txt - add google-generativeai
+[33mb776a3b[m Proyecto completo Dante Propiedades - Backend FastAPI + Frontend

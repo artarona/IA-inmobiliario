@@ -1,0 +1,243 @@
+powershell
+# Desinstalar versiones problemáticas
+pip uninstall pydantic fastapi -y
+
+# Instalar versiones compatibles con Python 3.12
+pip install "pydantic==2.5.0" "fastapi==0.104.1" uvicorn requests google-generativeai python-dotenv
+
+# De excel a json en la carpeta testeo. Asegurarse pip install pandas openpyxl. 
+
+INSTRUCTIVO COMPLETO: DANTE PROPIEDADES
+🏠 ¿QUÉ ES DANTE PROPIEDADES?
+Dante Propiedades es una plataforma inmobiliaria inteligente que combina:
+
+🤖 Asistente virtual con IA (Google Gemini)
+
+🏘️ Base de datos de propiedades
+
+🔍 Sistema de búsqueda inteligente
+
+💬 Chat interactivo en tiempo real
+
+📱 Interfaz web moderna y responsive
+
+🛠️ ARQUITECTURA TÉCNICA
+Frontend (Cliente)
+text
+📁 CHATGPT/
+├── 📄 index.html          # Interfaz principal
+├── 🎨 CSS incorporado     # Estilos en el mismo HTML
+├── ⚡ JavaScript          # Lógica del cliente
+└── 🖼️ llave.png          # Logo (opcional)
+Backend (Servidor)
+text
+📁 CHATGPT/
+├── 📄 main.py             # Aplicación FastAPI principal
+├── 📄 config.py           # Configuración y variables
+├── 📄 requirements.txt    # Dependencias Python
+├── 📄 Dockerfile          # Contenedor para producción
+├── 📄 runtime.txt         # Versión de Python
+└── 📄 render.yaml         # Configuración de deploy
+Base de Datos & Datos
+text
+📁 CHATGPT/
+├── 📄 properties.json     # Catálogo de propiedades
+├── 📄 propiedades.db      # Base SQLite (generada)
+├── 📄 conversaciones.db   # Logs de chats
+└── 📁 gemini/
+    └── 📄 client.py       # Cliente de Gemini AI
+📄 DETALLE DE CADA ARCHIVO
+1. index.html - INTERFAZ WEB
+Propósito: Frontend completo de la aplicación
+Características:
+
+Diseño responsive con CSS moderno
+
+Panel de filtros lateral (barrio, precio, ambientes, etc.)
+
+Área de chat en tiempo real
+
+Integración con backend via Fetch API
+
+Compatible con móviles y desktop
+
+2. main.py - BACKEND PRINCIPAL
+Propósito: Servidor FastAPI con toda la lógica
+Endpoints principales:
+
+POST /chat - Procesar mensajes del usuario
+
+GET /properties - Buscar propiedades con filtros
+
+GET /status - Estado del servicio
+
+GET /debug - Información de diagnóstico
+
+GET /logs - Ver historial de conversaciones
+
+Funcionalidades clave:
+
+Detección automática de filtros en el texto
+
+Búsqueda en base de datos SQLite
+
+Integración con Gemini AI para respuestas
+
+Logging de conversaciones
+
+Sistema de métricas y estadísticas
+
+3. config.py - CONFIGURACIÓN
+Propósito: Gestión de variables y configuración
+Contenido:
+
+Carga de variables de entorno
+
+Configuración de API Keys de Gemini
+
+Definición del modelo de IA a usar
+
+Configuración de endpoints
+
+4. properties.json - CATÁLOGO
+Propósito: Base de datos de propiedades disponibles
+Estructura:
+
+json
+{
+  "id": 1,
+  "title": "Estudio en Palermo Hollywood",
+  "neighborhood": "Palermo",
+  "price": 135000,
+  "rooms": 1,
+  "sqm": 32,
+  "description": "Moderno estudio...",
+  "operacion": "alquiler",
+  "tipo": "departamento"
+}
+5. gemini/client.py - CLIENTE DE IA
+Propósito: Comunicación con Google Gemini API
+Funcionalidad:
+
+Rotación automática de API Keys
+
+Manejo de errores y límites
+
+Configuración del modelo generative
+
+🚀 FLUJO DE FUNCIONAMIENTO
+1. Usuario envía mensaje
+text
+Frontend → POST /chat → Backend
+2. Procesamiento inteligente
+python
+# Backend detecta:
+- Filtros en el texto (barrio, precio, tipo)
+- Consulta base de datos
+- Construye prompt para Gemini
+- Llama a la API de IA
+3. Generación de respuesta
+text
+Gemini AI → Respuesta personalizada → Frontend
+4. Presentación al usuario
+text
+Interfaz muestra propiedades + explicación de IA
+🎯 CARACTERÍSTICAS INTELIGENTES
+🔍 DETECCIÓN AUTOMÁTICA DE FILTROS
+El sistema detecta automáticamente:
+
+Barrios: "Palermo", "Recoleta", "Belgrano"
+
+Operación: "alquiler", "venta", "comprar"
+
+Tipos: "departamento", "casa", "PH"
+
+Precios: "hasta $200,000", "mínimo $100,000"
+
+Ambientes: "2 ambientes", "3 habitaciones"
+
+🤖 INTEGRACIÓN CON GEMINI AI
+Contexto inmobiliario especializado
+
+Respuestas naturales y profesionales
+
+Personalización según consulta del usuario
+
+Manejo de errores elegante
+
+📊 GESTIÓN DE DATOS
+Base SQLite para búsquedas rápidas
+
+Cache de consultas para mejor performance
+
+Logging completo de conversaciones
+
+Métricas en tiempo real
+
+🌐 DEPLOY Y HOSTING
+Frontend: GitHub Pages
+text
+https://artaronamail-debug.github.io/CHATGPT/
+Backend: Render.com
+text
+https://dante-propiedades-backend.onrender.com
+Configuración:
+Python 3.11 via Docker
+
+Variables de entorno para API Keys
+
+Deploy automático desde GitHub
+
+🔧 MANTENIMIENTO Y ESCALAMIENTO
+Agregar más propiedades:
+Editar properties.json
+
+El sistema las carga automáticamente
+
+Actualizar API Keys:
+Generar nuevas en Google AI Studio
+
+Actualizar en Render → Environment
+
+Modificar interfaz:
+Editar index.html
+
+Push a GitHub → Deploy automático
+
+🎨 PERSONALIZACIÓN POSIBLE
+Fácil de modificar:
+✨ Estilos CSS en index.html
+
+🏘️ Propiedades en properties.json
+
+🔧 Configuración en config.py
+
+🤖 Comportamiento de IA en main.py
+
+Extensiones futuras:
+📧 Sistema de notificaciones
+
+📱 App móvil nativa
+
+🔐 Sistema de usuarios
+
+📊 Panel administrativo
+
+🌐 Integración con APIs inmobiliarias
+
+✅ ESTADO ACTUAL
+🚀 APLICACIÓN 100% FUNCIONAL:
+
+✅ Frontend responsive en GitHub Pages
+
+✅ Backend escalable en Render
+
+✅ IA Gemini integrada y funcionando
+
+✅ Base de datos con 16 propiedades
+
+✅ Sistema de búsqueda inteligente
+
+✅ Chat en tiempo real
+
+✅ Deploy automático configurado
