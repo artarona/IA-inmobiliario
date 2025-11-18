@@ -495,8 +495,8 @@
             </div>
 
             <div class="filter-buttons">
-                <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Aplicar Filtros</button>
-                <button class="btn btn-secondary" onclick="limpiarFiltros()">🔄 Limpiar Filtros</button>
+                <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar Filtros</button>
             </div>
         </div>
 
@@ -509,7 +509,7 @@
                     <div class="status-dot"></div>
                     <span id="statusText">Conectado</span>
                 </div>
-                <button class="reset-chat" onclick="resetearChat()">🔄 Nueva Consulta</button>
+                <button class="reset-chat" onclick="resetearChat()">Nueva Consulta</button>
             </div>
 
             <div class="chat-box" id="chatBox">
@@ -545,7 +545,11 @@
     </div>
 
     <script>
+        // ========================================
+        // CONFIGURACIÓN DEL BACKEND
+        // ========================================
         const API_URL = "https://ia-inmobiliario.onrender.com/chat";
+        
         const chatBox = document.getElementById('chatBox');
         const input = document.getElementById('userInput');
         const button = document.getElementById('sendBtn');
@@ -554,7 +558,7 @@
 
         let conversacionActual = [];
 
-        // AGREGAR AL INICIO DEL SCRIPT (después de let conversacionActual = [])
+        // Contexto para seguimiento de conversación
         let contextoActual = {
             tipo: null,           // 'busqueda' | 'propiedad_especifica'
             resultados: [],       // Array de propiedades mostradas
@@ -564,7 +568,6 @@
         };
 
         // Función para actualizar el contexto
-// Función para actualizar el contexto
         function actualizarContexto(resultados, filtros = {}, tipo = 'busqueda') {
             contextoActual = {
                 tipo: tipo,
@@ -577,13 +580,11 @@
         }
 
         // Función para detectar si es una pregunta de seguimiento
-        // Función para detectar si es una pregunta de seguimiento
         function esPreguntaSeguimiento(mensaje) {
             if (!contextoActual.resultados || contextoActual.resultados.length === 0) {
                 return false;
             }
             
-            // 👇 CORREGIR: usar 'mensaje' no 'msg'
             const mensajeLower = mensaje.toLowerCase().trim();
             
             const palabrasSeguimiento = [
@@ -891,13 +892,11 @@
                     let mensajeMejorado = data.response;
                     
                     // AGREGAR INFORMACIÓN SOBRE RESULTADOS Y ACTUALIZAR CONTEXTO
-                   // AGREGAR INFORMACIÓN SOBRE RESULTADOS Y ACTUALIZAR CONTEXTO
                     if (data.search_performed && data.results_count !== null) {
                         if (data.results_count > 0) {
                             mensajeMejorado += `\n\n---\n**🎯 BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
                             
                             // ACTUALIZAR CONTEXTO con los nuevos resultados
-                            // 👇 AGREGAR LOGS CRÍTICOS PARA DEBUG DEL CONTEXTO
                             console.log('🔍 DEBUG - ANTES DE ACTUALIZAR CONTEXTO:', {
                                 data_propiedades: data.propiedades,
                                 data_propiedades_length: data.propiedades ? data.propiedades.length : 0,
@@ -912,27 +911,7 @@
                             } else {
                                 console.log('❌ CONDICIÓN FALLADA - No hay propiedades para actualizar contexto');
                                 console.log('💡 Data recibida:', data);
-                                
-                                // 👇 SOLUCIÓN TEMPORAL - Crear contexto manual si no hay datos
-                                // if (data.search_performed && data.results_count > 0) {
-                                 //   console.log('🛠️ CREANDO CONTEXTO MANUAL');
-                                 //   const propiedadesManuales = [{
-                                  //      title: "Departamento en Palermo SoHo",
-                                  //      price: 280000,
-                                  //      neighborhood: "Palermo",
-                                 //       rooms: 2,
-                                  //      sqm: 68,
-                                 //       operacion: "alquiler",
-                                 //      tipo: "departamento",
-                                 //       description: "Departamento de 2 ambientes en Palermo SoHo"
-                                  //  }];
-                                 //   actualizarContexto(propiedadesManuales, filtrosSeleccionados, 'busqueda');
-                                //}
                             }
-
-
-
-
 
                             // AGREGAR INSTRUCCIÓN DE SEGUIMIENTO SOLO SI ES NUEVA BÚSQUEDA Y HAY RESULTADOS
                             if (!esSeguimiento) {
