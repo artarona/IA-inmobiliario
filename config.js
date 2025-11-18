@@ -2,7 +2,7 @@
 
 const CONFIG = {
     // ⚠️ REEMPLAZA CON TU URL REAL DE RENDER
-    API_URL: 'https://chatgpt-eio1.onrender.com/chat',
+    API_URL: 'https://ia-inmobiliario.onrender.com/chat',
     
     // Configuración de la UI
     UI: {
