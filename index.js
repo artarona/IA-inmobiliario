@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom/client';
 
 // Función para mantener el backend despierto
 function keepBackendAlive() {
-  fetch('https://dante-propiedades-backend.onrender.com/status')
+  fetch('https://ia-inmobiliario.onrender.com/status')
     .then(() => console.log('✅ Backend pinged - manteniendo activo'))
     .catch(error => console.log('❌ Error ping backend:', error));
 }
