@@ -559,13 +559,20 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         )
     
     if results is not None and results:
-        bullets = [
-            f"{r['titulo']} — {r['barrio']} — ${r['precio']:,.0f} — {r['ambientes']} amb — {r['metros_cuadrados']} m2"
-            for r in results[:8]
-        ]
+        # Lista de emojis de vivienda para separar propiedades
+        house_emojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"]
+        
+        bullets = []
+        for i, r in enumerate(results[:8]):
+            emoji = house_emojis[i % len(house_emojis)]
+            bullet = f"{emoji} **{r['titulo']}** — {r['barrio']} — ${r['precio']:,.0f} — {r['ambientes']} amb — {r['metros_cuadrados']} m2"
+            bullets.append(bullet)
+        
+        properties_formatted = "\n\n".join(bullets)
+        
         return (
-            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. Aquí hay resultados relevantes:\n"
-            + "\n".join(bullets)
+            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. 🏠 **Aquí hay resultados relevantes:**\n\n"
+            + properties_formatted
             + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
             "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
             "Cerrá con un agradecimiento y tono amable."

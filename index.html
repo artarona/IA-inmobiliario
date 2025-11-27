@@ -247,6 +247,30 @@
             opacity: 0.7;
         }
 
+        /* Estilos para emojis de vivienda */
+        .property-emoji {
+            font-size: 1.2em;
+            margin-right: 8px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+            40%, 43% { transform: translate3d(0,-5px,0); }
+            70% { transform: translate3d(0,-3px,0); }
+            90% { transform: translate3d(0,-1px,0); }
+        }
+
+        /* Mejorar formato de listas de propiedades */
+        .property-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+
         /* Input area */
         .input-area {
             padding: 20px 25px;
@@ -640,13 +664,15 @@
         
         
         // Mensaje de bienvenida
-        const welcomeMessage = `¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
+        const welcomeMessage = `🏠 ¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
 
         Te ayudo a encontrar la propiedad ideal. Podés:
 
 • Usar los filtros para búsquedas específicas
 • Contarme directamente qué necesitás
 • Combinar filtros con descripciones personalizadas
+
+🏡 Las propiedades aparecerán separadas por emojis para una mejor visualización.
 
 ¿En qué puedo ayudarte hoy?`;
 
@@ -891,10 +917,40 @@
                 if (data.response) {
                     let mensajeMejorado = data.response;
                     
+                    // Verificar si la respuesta del backend ya contiene emojis de vivienda
+                    const houseEmojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"];
+                    const hasHouseEmojis = houseEmojis.some(emoji => mensajeMejorado.includes(emoji));
+                    
+                    if (!hasHouseEmojis && data.propiedades && data.propiedades.length > 0) {
+                        // Si el backend no incluyó emojis, agregarlos en el frontend
+                        const formattedProperties = data.propiedades.map((prop, index) => {
+                            const emoji = houseEmojis[index % houseEmojis.length];
+                            return `${emoji} **${prop.titulo || 'Propiedad'}** — ${prop.barrio || 'N/A'} — $${(prop.precio || 0).toLocaleString()} — ${prop.ambientes || 'N/A'} amb — ${prop.metros_cuadrados || 'N/A'} m²`;
+                        }).join('\n\n');
+                        
+                        if (mensajeMejorado.includes("Aquí hay resultados relevantes")) {
+                            mensajeMejorado = mensajeMejorado.replace(
+                                "Aquí hay resultados relevantes:",
+                                `🏠 **PROPIEDADES ENCONTRADAS** 🏠\n\n${formattedProperties}`
+                            );
+                        }
+                    }
+                    
                     // AGREGAR INFORMACIÓN SOBRE RESULTADOS Y ACTUALIZAR CONTEXTO
                     if (data.search_performed && data.results_count !== null) {
                         if (data.results_count > 0) {
-                            mensajeMejorado += `\n\n---\n**🎯 BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
+                            // Mostrar propiedades individuales con emojis si están disponibles
+                            if (data.propiedades && data.propiedades.length > 0) {
+                                mensajeMejorado += `\n\n---\n🏠 **PROPIEDADES ENCONTRADAS** 🏠`;
+                                
+                                const house_emojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"];
+                                data.propiedades.forEach((propiedad, index) => {
+                                    const emoji = house_emojis[index % house_emojis.length];
+                                    mensajeMejorado += `\n${emoji} **${propiedad.titulo || 'Propiedad'}**\n   📍 ${propiedad.barrio || 'Barrio no especificado'} | 💰 $${(propiedad.precio || 0).toLocaleString()} | 🏠 ${propiedad.ambientes || 'N/A'} amb | 📐 ${propiedad.metros_cuadrados || 'N/A'} m²`;
+                                });
+                            } else {
+                                mensajeMejorado += `\n\n---\n🎯 **BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
+                            }
                             
                             // ACTUALIZAR CONTEXTO con los nuevos resultados
                             console.log('🔍 DEBUG - ANTES DE ACTUALIZAR CONTEXTO:', {
@@ -980,4 +1036,3 @@
         checkServerStatus();
     </script>
 </body>
-</html>
