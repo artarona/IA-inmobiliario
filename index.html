@@ -271,6 +271,31 @@
             margin: 10px 0;
         }
 
+        /* Mejorar presentación de propiedades con emojis */
+        .message .property-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px 0;
+            border-left: 3px solid #007bff;
+        }
+
+        .message .property-item strong {
+            color: #007bff;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Hacer que los mensajes de propiedad sean más legibles */
+        .message pre {
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            margin: 10px 0;
+        }
+
         /* Input area */
         .input-area {
             padding: 20px 25px;
@@ -734,6 +759,9 @@
             }
         }
 
+        // Hacer las funciones accesibles globalmente
+        window.resetearChat = resetearChat;
+
         function obtenerFiltrosSeleccionados() {
             const operacion = document.getElementById('operacion').value;
             const barrio = document.getElementById('barrio').value;
@@ -831,6 +859,9 @@
                 send();
         }
 
+        // Hacer las funciones accesibles globalmente
+        window.aplicarFiltros = aplicarFiltros;
+
 
         function limpiarFiltros() {
             document.getElementById('operacion').value = '';
@@ -842,6 +873,9 @@
             document.getElementById('metrosMin').value = '';
             document.getElementById('metrosMax').value = '';
         }
+
+        // Hacer las funciones accesibles globalmente
+        window.limpiarFiltros = limpiarFiltros;
 
 
 
@@ -942,12 +976,12 @@
                     if (!esSeguimiento && !mensajeMejorado.includes("✨ **Para ayudarte mejor")) {
                         mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento en Palermo?"\n• "Contacto para la propiedad de $280,000"`;
                     }
-                        } else {
-                            mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
-                            // Limpiar contexto si no hay resultados
-                            actualizarContexto([], {}, 'busqueda');
-                        }
-                    }
+                } else if (data.search_performed) {
+                    // Caso cuando se realizó búsqueda pero no hay propiedades
+                    mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
+                    // Limpiar contexto si no hay resultados
+                    actualizarContexto([], {}, 'busqueda');
+                }
                     
                     // Si no se realizó búsqueda pero es seguimiento, mantener contexto
                     if (!data.search_performed && esSeguimiento) {
