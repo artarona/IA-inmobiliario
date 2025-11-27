@@ -45,7 +45,6 @@ print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
 
 def call_gemini_with_rotation(prompt: str) -> str:
-    import google.generativeai as genai
     
     print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
     print(f"🔧 Modelo: {MODEL}")
@@ -63,6 +62,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
         print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
         
         try:
+            import google.generativeai as genai
             genai.configure(api_key=key.strip())
             model = genai.GenerativeModel(MODEL)
             
