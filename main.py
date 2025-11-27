@@ -548,9 +548,20 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
     whatsapp_tone = channel == "whatsapp"
 
     if property_details:
-        details = "\n".join([f"- {key.replace('_', ' ').capitalize()}: {value}" for key, value in property_details.items()])
+        selected_details = {
+            "Título": property_details.get('titulo'),
+            "Barrio": property_details.get('barrio'),
+            "Precio": f"${property_details.get('precio', 0):,.0f}",
+            "Ambientes": property_details.get('ambientes'),
+            "Metros cuadrados": property_details.get('metros_cuadrados'),
+            "Descripción": property_details.get('descripcion'),
+            "Operación": property_details.get('operacion'),
+            "Tipo": property_details.get('tipo'),
+            "Dirección": property_details.get('direccion'),
+        }
+        details = "\n".join([f"- {key}: {value}" for key, value in selected_details.items() if value])
         return (
-            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['titulo']}'. Aquí están todos los detalles de la propiedad:\n"
+            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['titulo']}'. Aquí están los detalles de la propiedad:\n"
             + details
             + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara y atractiva. "
             "Ofrecé ayuda personalizada y sugerí continuar la conversación por WhatsApp. "
@@ -1058,7 +1069,7 @@ async def chat(request: ChatRequest):
         # If there are results, replace the placeholder with the actual list
         if results:
             numbered_list = [
-                f"🏠 {i+1}. {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
+                f"\U0001F3E0 {i+1}. {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
                 for i, r in enumerate(results[:8])
             ]
             list_string = "\n".join(numbered_list)
