@@ -562,36 +562,50 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         # Lista de emojis de vivienda para separar propiedades
         house_emojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"]
         
-        bullets = []
-        for i, r in enumerate(results[:8]):
+        # Formatear propiedades con estructura específica
+        properties_list = []
+        for i, r in enumerate(results[:6]):  # Limitar a 6 para mejor legibilidad
             emoji = house_emojis[i % len(house_emojis)]
-            bullet = f"{emoji} **{r['titulo']}** — {r['barrio']} — ${r['precio']:,.0f} — {r['ambientes']} amb — {r['metros_cuadrados']} m2"
-            bullets.append(bullet)
+            property_info = f"{emoji} **{r['titulo']}**\n   • Barrio: {r['barrio']}\n   • Precio: ${r['precio']:,.0f}\n   • {r['ambientes']} ambientes | {r['metros_cuadrados']} m²"
+            if r.get('descripcion'):
+                property_info += f"\n   • {r['descripcion'][:50]}{'...' if len(r.get('descripcion', '')) > 50 else ''}"
+            properties_list.append(property_info)
         
-        properties_formatted = "\n\n".join(bullets)
+        properties_formatted = "\n\n".join(properties_list)
         
         return (
-            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. 🏠 **Aquí hay resultados relevantes:**\n\n"
+            style_hint + f"\n\n👋 ¡Hola! Gracias por contactarnos. \nHemos encontrado opciones que podrían interesarte:\n\n"
             + properties_formatted
-            + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
-            "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
-            "Cerrá con un agradecimiento y tono amable."
+            + "\n\n✨ **Para ayudarte mejor, contame:**\n"
+            + "- ¿Qué tipo de propiedad buscás? (casa, depto, casaquinta...)\n"
+            + "- ¿Cuál es tu rango de precio?\n"
+            + "- ¿Qué características son importantes para vos?\n\n"
+            + "📲 Si querés una atención más rápida y personalizada, escribime por WhatsApp al [Número].\n"
+            + "¡Estoy aquí para ayudarte a encontrar tu próximo hogar!"
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
         )
     elif results is not None:
         return (
-            f"{style_hint}\n\nEl usuario busca propiedades con estos filtros: {filters} pero no hay resultados. "
-            "Redactá una respuesta amable que sugiera alternativas cercanas, pida más detalles "
-            "y ofrezca continuar la conversación por WhatsApp. Cerrá con un agradecimiento."
+            f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
+            f"Lamentablemente no encontré propiedades que coincidan exactamente con tu búsqueda en {filters.get('neighborhood', 'tu zona')}. \n\n"
+            "✨ **Te ayudo a encontrar alternativas:**\n"
+            "- ¿Podrías ampliar el rango de precio?\n"
+            "- ¿Qué tal considerar barrios cercanos?\n"
+            "- ¿Hay alguna característica que no sea imprescindible?\n\n"
+            "📲 Si querés una búsqueda personalizada, escribime por WhatsApp al [Número].\n"
+            "¡Estoy aquí para ayudarte a encontrar tu próximo hogar!"
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
         )
     else:
         return (
-            f"{style_hint}\n\nActuá como asistente inmobiliario para Dante Propiedades. "
-            "Respondé la siguiente consulta de forma cálida, profesional y breve. "
-            "Si es posible, ofrecé continuar por WhatsApp y agradecé el contacto."
+            f"{style_hint}\n\n👋 ¡Hola! Soy tu asistente de Dante Propiedades. \n\n"
+            f"Te ayudo a encontrar la propiedad ideal para vos. Podés:\n"
+            f"- Usar los filtros de búsqueda a la izquierda\n"
+            f"- Contarme directamente qué necesitás\n"
+            f"- Combinar filtros con descripciones personalizadas\n\n"
+            f"🏠 Todas las propiedades aparecen separadas por emojis para mejor visualización.\n\n"
+            f"¡Empecemos! ¿Qué propiedad estás buscando?"
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-            + "\nConsulta: " + user_text
         )
 
 def log_conversation(user_text, response_text, channel="web", response_time=0.0, search_performed=False, results_count=0):

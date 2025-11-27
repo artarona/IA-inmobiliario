@@ -917,63 +917,31 @@
                 if (data.response) {
                     let mensajeMejorado = data.response;
                     
-                    // Verificar si la respuesta del backend ya contiene emojis de vivienda
+                    // Verificar si la respuesta del backend ya contiene el formato específico
                     const houseEmojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"];
                     const hasHouseEmojis = houseEmojis.some(emoji => mensajeMejorado.includes(emoji));
+                    const hasNewFormat = mensajeMejorado.includes("¡Hola! Gracias por contactarnos");
                     
-                    if (!hasHouseEmojis && data.propiedades && data.propiedades.length > 0) {
-                        // Si el backend no incluyó emojis, agregarlos en el frontend
+                    // Si el backend no usó el nuevo formato, aplicar formato alternativo
+                    if (!hasNewFormat && hasHouseEmojis && data.propiedades && data.propiedades.length > 0) {
                         const formattedProperties = data.propiedades.map((prop, index) => {
                             const emoji = houseEmojis[index % houseEmojis.length];
-                            return `${emoji} **${prop.titulo || 'Propiedad'}** — ${prop.barrio || 'N/A'} — $${(prop.precio || 0).toLocaleString()} — ${prop.ambientes || 'N/A'} amb — ${prop.metros_cuadrados || 'N/A'} m²`;
+                            return `${emoji} **${prop.titulo || 'Propiedad'}**\n   • Barrio: ${prop.barrio || 'N/A'}\n   • Precio: $${(prop.precio || 0).toLocaleString()}\n   • ${prop.ambientes || 'N/A'} ambientes | ${prop.metros_cuadrados || 'N/A'} m²`;
                         }).join('\n\n');
                         
-                        if (mensajeMejorado.includes("Aquí hay resultados relevantes")) {
-                            mensajeMejorado = mensajeMejorado.replace(
-                                "Aquí hay resultados relevantes:",
-                                `🏠 **PROPIEDADES ENCONTRADAS** 🏠\n\n${formattedProperties}`
-                            );
-                        }
+                        mensajeMejorado = `👋 ¡Hola! Gracias por contactarnos.\nHemos encontrado opciones que podrían interesarte:\n\n${formattedProperties}\n\n✨ **Para ayudarte mejor, contame:**\n- ¿Qué tipo de propiedad buscás? (casa, depto, casaquinta...)\n- ¿Cuál es tu rango de precio?\n- ¿Qué características son importantes para vos?\n\n📲 Si querés una atención más rápida y personalizada, escribime por WhatsApp al [Número].\n¡Estoy aquí para ayudarte a encontrar tu próximo hogar!`;
                     }
                     
-                    // AGREGAR INFORMACIÓN SOBRE RESULTADOS Y ACTUALIZAR CONTEXTO
-                    if (data.search_performed && data.results_count !== null) {
-                        if (data.results_count > 0) {
-                            // Mostrar propiedades individuales con emojis si están disponibles
-                            if (data.propiedades && data.propiedades.length > 0) {
-                                mensajeMejorado += `\n\n---\n🏠 **PROPIEDADES ENCONTRADAS** 🏠`;
-                                
-                                const house_emojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"];
-                                data.propiedades.forEach((propiedad, index) => {
-                                    const emoji = house_emojis[index % house_emojis.length];
-                                    mensajeMejorado += `\n${emoji} **${propiedad.titulo || 'Propiedad'}**\n   📍 ${propiedad.barrio || 'Barrio no especificado'} | 💰 $${(propiedad.precio || 0).toLocaleString()} | 🏠 ${propiedad.ambientes || 'N/A'} amb | 📐 ${propiedad.metros_cuadrados || 'N/A'} m²`;
-                                });
-                            } else {
-                                mensajeMejorado += `\n\n---\n🎯 **BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
-                            }
-                            
-                            // ACTUALIZAR CONTEXTO con los nuevos resultados
-                            console.log('🔍 DEBUG - ANTES DE ACTUALIZAR CONTEXTO:', {
-                                data_propiedades: data.propiedades,
-                                data_propiedades_length: data.propiedades ? data.propiedades.length : 0,
-                                data_completa: data,
-                                filtrosSeleccionados: filtrosSeleccionados
-                            });
-                            
-                            // ACTUALIZAR CONTEXTO con los nuevos resultados
-                            if (data.propiedades && data.propiedades.length > 0) {
-                                console.log('✅ CONDICIÓN CUMPLIDA - Actualizando contexto');
-                                actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
-                            } else {
-                                console.log('❌ CONDICIÓN FALLADA - No hay propiedades para actualizar contexto');
-                                console.log('💡 Data recibida:', data);
-                            }
-
-                            // AGREGAR INSTRUCCIÓN DE SEGUIMIENTO SOLO SI ES NUEVA BÚSQUEDA Y HAY RESULTADOS
-                            if (!esSeguimiento) {
-                                mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento en Palermo?"\n• "Contacto para la propiedad de $280,000"`;
-                                console.log('💡 Mensaje de seguimiento agregado');
-                            }
+                    // ACTUALIZAR CONTEXTO con los nuevos resultados
+                    if (data.search_performed && data.propiedades && data.propiedades.length > 0) {
+                        console.log('🔍 Actualizando contexto con resultados:', data.propiedades.length);
+                        actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
+                    }
+                    
+                    // Solo agregar instrucciones de seguimiento si no es seguimiento y la respuesta no las incluye
+                    if (!esSeguimiento && !mensajeMejorado.includes("✨ **Para ayudarte mejor")) {
+                        mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento en Palermo?"\n• "Contacto para la propiedad de $280,000"`;
+                    }
                         } else {
                             mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
                             // Limpiar contexto si no hay resultados
@@ -1036,3 +1004,4 @@
         checkServerStatus();
     </script>
 </body>
+</html>
