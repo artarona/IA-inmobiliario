@@ -1058,7 +1058,7 @@ async def chat(request: ChatRequest):
         # If there are results, replace the placeholder with the actual list
         if results:
             numbered_list = [
-                f"**{i+1}.** {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
+                f"🏠 {i+1}. {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
                 for i, r in enumerate(results[:8])
             ]
             list_string = "\n".join(numbered_list)
