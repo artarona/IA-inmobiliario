@@ -559,18 +559,34 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         )
     
     if results is not None and results:
-        bullets = [
-            f"{i+1}. {r['titulo']} {r.get('direccion', '')}"
+        numbered_list = [
+            f"{i+1}. {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
             for i, r in enumerate(results[:8])
         ]
-        return (
-            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. Aquí hay resultados relevantes:\n"
-            + "\n".join(bullets)
-            + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
-            "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
-            "Cerrá con un agradecimiento y tono amable."
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        
+        summary_bullets = [
+            f"- {r['titulo']}: {r['barrio']}, ${r['precio']:,.0f}, {r['ambientes']} amb, {r['metros_cuadrados']} m2."
+            for r in results[:8]
+        ]
+
+        prompt_intro = f"El usuario está buscando propiedades con los siguientes filtros: {filters}. "
+        prompt_list = "Aquí tienes una lista de las propiedades encontradas:\n" + "\n".join(numbered_list)
+        prompt_summary_for_context = "\n\nContexto adicional con más detalles de las propiedades:\n" + "\n".join(summary_bullets)
+        
+        prompt_instruction = (
+            "\n\nINSTRUCCIONES: Redacta una respuesta cálida y profesional. "
+            "Primero, PRESENTA la lista numerada de propiedades que encontraste. "
+            "Luego, podés hacer un breve resumen de las opciones. "
+            "Finalmente, preguntá si quieren más detalles sobre alguna de las propiedades de la lista (pueden referirse a ellas por su número). "
+            "Ofrece ayuda personalizada y sugiere continuar la conversación por WhatsApp. "
+            "Cierra con un agradecimiento y tono amable."
         )
+
+        return (
+            style_hint + "\n\n" + prompt_intro + prompt_list + prompt_summary_for_context + prompt_instruction +
+            ("\nUsa emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        )
+
     elif results is not None:
         return (
             f"{style_hint}\n\nEl usuario busca propiedades con estos filtros: {filters} pero no hay resultados. "
