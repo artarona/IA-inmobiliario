@@ -560,8 +560,8 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
     
     if results is not None and results:
         bullets = [
-            f"{r['titulo']} — {r['barrio']} — ${r['precio']:,.0f} — {r['ambientes']} amb — {r['metros_cuadrados']} m2"
-            for r in results[:8]
+            f"{i+1}. {r['titulo']} {r.get('direccion', '')}"
+            for i, r in enumerate(results[:8])
         ]
         return (
             style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. Aquí hay resultados relevantes:\n"
