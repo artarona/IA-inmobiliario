@@ -548,20 +548,9 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
     whatsapp_tone = channel == "whatsapp"
 
     if property_details:
-        selected_details = {
-            "Título": property_details.get('titulo'),
-            "Barrio": property_details.get('barrio'),
-            "Precio": f"${property_details.get('precio', 0):,.0f}",
-            "Ambientes": property_details.get('ambientes'),
-            "Metros cuadrados": property_details.get('metros_cuadrados'),
-            "Descripción": property_details.get('descripcion'),
-            "Operación": property_details.get('operacion'),
-            "Tipo": property_details.get('tipo'),
-            "Dirección": property_details.get('direccion'),
-        }
-        details = "\n".join([f"- {key}: {value}" for key, value in selected_details.items() if value])
+        details = "\n".join([f"- {key.replace('_', ' ').capitalize()}: {value}" for key, value in property_details.items()])
         return (
-            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['titulo']}'. Aquí están los detalles de la propiedad:\n"
+            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['titulo']}'. Aquí están todos los detalles de la propiedad:\n"
             + details
             + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara y atractiva. "
             "Ofrecé ayuda personalizada y sugerí continuar la conversación por WhatsApp. "
@@ -570,23 +559,18 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         )
     
     if results is not None and results:
-        prompt = (
-            f"{style_hint}\n\n"
-            "Actúa como un asistente inmobiliario amigable y profesional. "
-            "Se ha encontrado una lista de propiedades para el usuario. "
-            "Tu tarea es generar el texto que acompañará a esta lista. "
-            "La lista se insertará donde aparezca el placeholder '[LISTA_DE_PROPIEDADES]'.\n\n"
-            "INSTRUCCIONES:\n"
-            "1. Escribe un saludo inicial cálido.\n"
-            "2. Incluye el placeholder '[LISTA_DE_PROPIEDADES]' en el lugar donde la lista debe aparecer.\n"
-            "3. Después del placeholder, escribe un texto de cierre donde invites al usuario a pedir más detalles sobre cualquier propiedad de la lista (usando su número), ofrezcas ayuda y sugieras contactar por WhatsApp.\n\n"
-            "EJEMPLO DE RESPUESTA COMPLETA QUE DEBES GENERAR:\n"
-            "¡Hola! Claro, encontré algunas propiedades que podrían interesarte:\n\n"
-            "[LISTA_DE_PROPIEDADES]\n\n"
-            "¿Te gustaría que te dé más detalles sobre alguna de ellas? Solo dime el número y te cuento más. Si preferís, podemos seguir la conversación por WhatsApp para una atención más personalizada. ¡Gracias por tu consulta!"
+        bullets = [
+            f"{r['titulo']} — {r['barrio']} — ${r['precio']:,.0f} — {r['ambientes']} amb — {r['metros_cuadrados']} m2"
+            for r in results[:8]
+        ]
+        return (
+            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. Aquí hay resultados relevantes:\n"
+            + "\n".join(bullets)
+            + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
+            "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
+            "Cerrá con un agradecimiento y tono amable."
+            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
         )
-        return prompt
-
     elif results is not None:
         return (
             f"{style_hint}\n\nEl usuario busca propiedades con estos filtros: {filters} pero no hay resultados. "
@@ -1061,19 +1045,54 @@ async def chat(request: ChatRequest):
         else:
             style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
 
-        prompt = build_prompt(user_text, results, filters, channel, style_hint, property_details)
+        if es_seguimiento_final and (contexto_anterior or property_details):
+            if property_details:
+                detalles_propiedad = f"""
+        PROPIEDAD ESPECÍFICA:
+        - Título: {property_details.get('titulo', 'N/A')}
+        - Precio: ${property_details.get('precio', 'N/A')}
+        - Barrio: {property_details.get('barrio', 'N/A')}
+        - Ambientes: {property_details.get('ambientes', 'N/A')}
+        - Metros: {property_details.get('metros_cuadrados', 'N/A')}m²
+        - Operación: {property_details.get('operacion', 'N/A')}
+        - Tipo: {property_details.get('tipo', 'N/A')}
+        - Descripción: {property_details.get('descripcion', 'N/A')}
+        - Dirección: {property_details.get('direccion', 'N/A')}
+        - Antigüedad: {property_details.get('antiguedad', 'N/A')}
+        - Amenities: {property_details.get('amenities', 'N/A')}
+        - Cochera: {property_details.get('cochera', 'N/A')}
+        - Balcón: {property_details.get('balcon', 'N/A')}
+        - Aire acondicionado: {property_details.get('aire_acondicionado', 'N/A')}
+        - Expensas: {property_details.get('expensas', 'N/A')}
+        - Estado: {property_details.get('estado', 'N/A')}
+        """
+                
+                prompt = f"""
+        ERES UN ASISTENTE INMOBILIARIO. El usuario está preguntando específicamente sobre ESTA propiedad:
+
+        {detalles_propiedad}
+
+        PREGUNTA DEL USUARIO: "{user_text}"
+
+        INSTRUCCIONES ESTRICTAS:
+        1. Responde EXCLUSIVAMENTE sobre esta propiedad específica
+        2. Proporciona TODOS los detalles disponibles listados arriba
+        3. NO menciones otras propiedades
+        4. NO hagas preguntas adicionales al usuario
+        5. Si faltan datos, menciona "No disponible" para ese campo
+        6. {style_hint}
+
+        RESPONDE DIRECTAMENTE CON TODOS LOS DETALLES DE ESTA PROPIEDAD:
+        """
+            
+            else:
+                prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial, property_details)
+
+        else:
+            prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial, property_details)
             
         metrics.increment_gemini_calls()
         answer = call_gemini_with_rotation(prompt)
-
-        # If there are results, replace the placeholder with the actual list
-        if results:
-            numbered_list = [
-                f"\U0001F3E0 {i+1}. {r['titulo']} en {r.get('direccion', r.get('barrio', ''))}"
-                for i, r in enumerate(results[:8])
-            ]
-            list_string = "\n".join(numbered_list)
-            answer = answer.replace("[LISTA_DE_PROPIEDADES]", list_string)
         
         response_time = time.time() - start_time
         log_conversation(user_text, answer, channel, response_time, search_performed, len(results) if results else 0)
