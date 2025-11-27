@@ -564,27 +564,23 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
             for i, r in enumerate(results[:8])
         ]
         
-        summary_bullets = [
-            f"- {r['titulo']}: {r['barrio']}, ${r['precio']:,.0f}, {r['ambientes']} amb, {r['metros_cuadrados']} m2."
-            for r in results[:8]
-        ]
-
-        prompt_intro = f"El usuario está buscando propiedades con los siguientes filtros: {filters}. "
-        prompt_list = "Aquí tienes una lista de las propiedades encontradas:\n" + "\n".join(numbered_list)
-        prompt_summary_for_context = "\n\nContexto adicional con más detalles de las propiedades:\n" + "\n".join(summary_bullets)
+        prompt_list = "\n".join(numbered_list)
         
         prompt_instruction = (
-            "\n\nINSTRUCCIONES: Redacta una respuesta cálida y profesional. "
-            "Primero, PRESENTA la lista numerada de propiedades que encontraste. "
-            "Luego, podés hacer un breve resumen de las opciones. "
-            "Finalmente, preguntá si quieren más detalles sobre alguna de las propiedades de la lista (pueden referirse a ellas por su número). "
-            "Ofrece ayuda personalizada y sugiere continuar la conversación por WhatsApp. "
-            "Cierra con un agradecimiento y tono amable."
+            "\n\nINSTRUCCIONES MUY ESTRICTAS: Tu respuesta DEBE comenzar con la lista numerada de propiedades. "
+            "NO la resumas. NO la omitas. "
+            "Debes escribir la lista tal como se te proporciona en 'LISTA DE PROPIEDADES'. "
+            "Después de la lista, puedes agregar un texto amigable. "
+            "Ejemplo de cómo debe empezar tu respuesta:\n"
+            "1. Casa en Palermo en Venta\n"
+            "2. Departamento en Almagro en Alquiler\n"
+            "¡Hola! Encontré estas propiedades para vos..."
         )
 
         return (
-            style_hint + "\n\n" + prompt_intro + prompt_list + prompt_summary_for_context + prompt_instruction +
-            ("\nUsa emojis si el canal es WhatsApp." if whatsapp_tone else "")
+            f"El usuario está buscando propiedades. Aquí tienes la lista para mostrar:\n\n"
+            f"LISTA DE PROPIEDADES:\n{prompt_list}\n"
+            f"{prompt_instruction}"
         )
 
     elif results is not None:
