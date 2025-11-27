@@ -66,6 +66,13 @@ def procesar_fila(fila):
     
     # Enriquecer con datos extraídos
     propiedad = enriquecer_propiedad(propiedad)
+
+    # Manejar campos de listas (fotos, videos, documentos)
+    for campo_lista in ['fotos', 'videos', 'documentos']:
+        if campo_lista in propiedad and isinstance(propiedad[campo_lista], str):
+            propiedad[campo_lista] = [item.strip() for item in propiedad[campo_lista].split(',')]
+        elif campo_lista not in propiedad:
+            propiedad[campo_lista] = []
     
     return propiedad
 
