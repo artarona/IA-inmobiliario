@@ -420,6 +420,75 @@
     </style>
 </head>
 <body>
+    
+    <!-- Reemplazar toda la sección de filtros estáticos por esta versión dinámica -->
+    <div class="filters-panel">
+        <div class="filters-header">
+            <div class="logo-container">
+                <h1>Dante Propiedades</h1>
+            </div>
+            <div class="filters-title">Filtros de Búsqueda</div>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Tipo de Operación</label>
+            <select class="filter-select" id="operacion">
+                <option value="">Todas las operaciones</option>
+                <!-- Se cargará dinámicamente -->
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Barrio/Localidad</label>
+            <select class="filter-select" id="barrio">
+                <option value="">Todos los barrios</option>
+                <!-- Se cargará dinámicamente -->
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Tipo de Propiedad</label>
+            <select class="filter-select" id="tipo">
+                <option value="">Todos los tipos</option>
+                <!-- Se cargará dinámicamente -->
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Ambientes</label>
+            <select class="filter-select" id="ambientes">
+                <option value="">Cualquier cantidad</option>
+                <option value="1">1 Ambiente</option>
+                <option value="2">2 Ambientes</option>
+                <option value="3">3 Ambientes</option>
+                <option value="4">4+ Ambientes</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Precio (USD/ARS)</label>
+            <div class="range-inputs">
+                <input type="number" class="filter-input" id="precioMin" placeholder="Mínimo">
+                <input type="number" class="filter-input" id="precioMax" placeholder="Máximo">
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Metros Cuadrados</label>
+            <div class="range-inputs">
+                <input type="number" class="filter-input" id="metrosMin" placeholder="Mínimo m²">
+                <input type="number" class="filter-input" id="metrosMax" placeholder="Máximo m²">
+            </div>
+        </div>
+
+        <div class="filter-buttons">
+            <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+            <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar Filtros</button>
+        </div>
+    </div>
+    
+    
+    
     <div class="app-container">
         <!-- Panel de Filtros -->
         <div class="filters-panel">
@@ -435,23 +504,13 @@
                 <label class="filter-label">Tipo de Operación</label>
                 <select class="filter-select" id="operacion">
                     <option value="">Todas las operaciones</option>
-                    <option value="alquiler">Alquiler</option>
-                    <option value="venta">Venta</option>
+
                 </select>
             </div>
 
             <div class="filter-group">
                 <label class="filter-label">Barrio/Localidad</label>
                 <select class="filter-select" id="barrio">
-                    <option value="">Todos los barrios</option>
-                    <option value="palermo">Palermo</option>
-                    <option value="recoleta">Recoleta</option>
-                    <option value="belgrano">Belgrano</option>
-                    <option value="almagro">Almagro</option>
-                    <option value="caballito">Caballito</option>
-                    <option value="microcentro">Microcentro</option>
-                    <option value="balvanera">Balvanera</option>
-                    <option value="boedo">Boedo</option>
                 </select>
             </div>
 
@@ -459,11 +518,6 @@
                 <label class="filter-label">Tipo de Propiedad</label>
                 <select class="filter-select" id="tipo">
                     <option value="">Todos los tipos</option>
-                    <option value="departamento">Departamento</option>
-                    <option value="casa">Casa</option>
-                    <option value="ph">PH</option>
-                    <option value="casaquinta">Casaquinta</option>
-                    <option value="terreno">Terreno</option>
                 </select>
             </div>
 

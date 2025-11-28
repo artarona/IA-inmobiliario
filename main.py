@@ -18,6 +18,185 @@ from pydantic import BaseModel, Field
 from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 
+
+// Variable global para almacenar los filtros dinámicos
+let filtrosDinamicos = {
+    operaciones: [],
+    tipos: [],
+    barrios: []
+};
+
+// Función para cargar filtros dinámicos desde el backend
+async function cargarFiltrosDinamicos() {
+    try {
+        console.log('🔄 Cargando filtros dinámicos...');
+        const response = await fetch(API_URL.replace('/chat', '/filters'));
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        filtrosDinamicos = data;
+        
+        console.log('✅ Filtros cargados:', filtrosDinamicos);
+        
+        // Actualizar los selectores
+        actualizarSelectoresFiltros();
+        
+    } catch (error) {
+        console.error('❌ Error cargando filtros:', error);
+        // Usar valores por defecto si falla
+        filtrosDinamicos = {
+            operaciones: ["alquiler", "venta"],
+            tipos: ["casa", "departamento", "ph", "terreno", "oficina"],
+            barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+        };
+        actualizarSelectoresFiltros();
+    }
+}
+
+// Función para actualizar los selectores con los filtros dinámicos
+function actualizarSelectoresFiltros() {
+    // Actualizar operaciones
+    const selectOperacion = document.getElementById('operacion');
+    selectOperacion.innerHTML = '<option value="">Todas las operaciones</option>';
+    
+    filtrosDinamicos.operaciones.forEach(operacion => {
+        if (operacion && operacion.trim()) {
+            const option = document.createElement('option');
+            option.value = operacion.toLowerCase();
+            option.textContent = operacion.charAt(0).toUpperCase() + operacion.slice(1);
+            selectOperacion.appendChild(option);
+        }
+    });
+
+    // Actualizar barrios
+    const selectBarrio = document.getElementById('barrio');
+    selectBarrio.innerHTML = '<option value="">Todos los barrios</option>';
+    
+    filtrosDinamicos.barrios.forEach(barrio => {
+        if (barrio && barrio.trim()) {
+            const option = document.createElement('option');
+            option.value = barrio.toLowerCase();
+            option.textContent = barrio;
+            selectBarrio.appendChild(option);
+        }
+    });
+
+    // Actualizar tipos
+    const selectTipo = document.getElementById('tipo');
+    selectTipo.innerHTML = '<option value="">Todos los tipos</option>';
+    
+    filtrosDinamicos.tipos.forEach(tipo => {
+        if (tipo && tipo.trim()) {
+            const option = document.createElement('option');
+            option.value = tipo.toLowerCase();
+            option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+            selectTipo.appendChild(option);
+        }
+    });
+
+    console.log('✅ Selectores actualizados con filtros dinámicos');
+}
+
+// Función para formatear filtros que muestra los nombres correctos
+function formatearFiltrosParaMensaje(filtros) {
+    const partes = [];
+    
+    if (filtros.operacion) {
+        const operacionFormateada = filtros.operacion.charAt(0).toUpperCase() + filtros.operacion.slice(1);
+        partes.push(operacionFormateada);
+    }
+    
+    if (filtros.neighborhood) {
+        const barrioFormateado = filtros.neighborhood.split(' ')
+            .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+            .join(' ');
+        partes.push(`barrio ${barrioFormateado}`);
+    }
+    
+    if (filtros.tipo) {
+        const tipoFormateado = filtros.tipo.charAt(0).toUpperCase() + filtros.tipo.slice(1);
+        partes.push(`tipo ${tipoFormateado}`);
+    }
+    
+    if (filtros.min_rooms) {
+        partes.push(`mínimo ${filtros.min_rooms} ambientes`);
+    }
+    
+    if (filtros.min_price || filtros.max_price) {
+        let precio = 'precio';
+        if (filtros.min_price) precio += ` desde $${filtros.min_price.toLocaleString()}`;
+        if (filtros.max_price) precio += ` hasta $${filtros.max_price.toLocaleString()}`;
+        partes.push(precio);
+    }
+    
+    if (filtros.min_sqm || filtros.max_sqm) {
+        let metros = 'metros';
+        if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
+        if (filtros.max_sqm) metros += ` hasta ${filtros.max_sqm}m²`;
+        partes.push(metros);
+    }
+    
+    return partes.join(', ');
+}
+
+
+// Modificar la función aplicarFiltros para usar nombres formateados
+function aplicarFiltros() {
+    const filtros = obtenerFiltrosSeleccionados();
+    
+    if (Object.keys(filtros).length === 0) {
+        alert('Seleccioná al menos un filtro para buscar.');
+        return;
+    }
+
+    // Construir mensaje natural con nombres formateados
+    const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
+    
+    let mensajeNatural = `Buscar propiedades`;
+    if (descripcionFiltros) {
+        mensajeNatural += ` con ${descripcionFiltros}`;
+    }
+    
+    input.value = mensajeNatural;
+    
+    // Enviar automáticamente
+    send();
+}
+
+// Llamar a cargarFiltrosDinamicos cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    cargarFiltrosDinamicos();
+});
+
+// También puedes llamarlo después del reset del chat
+function resetearChat() {
+    if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
+        chatBox.innerHTML = '';
+        conversacionActual = [];
+        
+        contextoActual = {
+            tipo: null,
+            resultados: [],
+            propiedad_focus: null,
+            filtros_usados: {},
+            timestamp: null
+        };
+        
+        limpiarFiltros();
+        
+        // Recargar filtros por si hay cambios
+        cargarFiltrosDinamicos();
+        
+        setTimeout(() => {
+            addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
+        }, 300);
+    }
+}
+
+
 # Después de las importaciones, agrega:
 print(f"🔍 API Keys cargadas: {API_KEYS}")
 print(f"🔍 Endpoint: {ENDPOINT}")
@@ -426,14 +605,6 @@ def cargar_propiedades_json(filename):
         print(f"⚠️ Error al cargar {filename}: {e}")
         return []
 
-def extraer_barrios(propiedades):
-    return sorted(set(p.get("barrio", "").lower() for p in propiedades if p.get("barrio")))
-
-def extraer_tipos(propiedades):
-    return sorted(set(p.get("tipo", "").lower() for p in propiedades if p.get("tipo")))
-
-def extraer_operaciones(propiedades):
-    return sorted(set(p.get("operacion", "").lower() for p in propiedades if p.get("operacion")))
 
 def get_historial_canal(canal="web", limite=3):
     try:
@@ -552,6 +723,149 @@ def query_properties(filters=None):
         print(f"❌ Error en query_properties: {e}")
         return []
     
+# Agregar estas funciones para obtener datos dinámicos
+def get_dynamic_filters():
+    """Obtiene filtros dinámicos desde la base de datos"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        # Obtener operaciones únicas
+        cur.execute("SELECT DISTINCT operacion FROM properties WHERE operacion IS NOT NULL AND operacion != ''")
+        operaciones = [row['operacion'] for row in cur.fetchall()]
+        
+        # Obtener tipos únicos
+        cur.execute("SELECT DISTINCT tipo FROM properties WHERE tipo IS NOT NULL AND tipo != ''")
+        tipos = [row['tipo'] for row in cur.fetchall()]
+        
+        # Obtener barrios únicos
+        cur.execute("SELECT DISTINCT barrio FROM properties WHERE barrio IS NOT NULL AND barrio != '' ORDER BY barrio")
+        barrios = [row['barrio'] for row in cur.fetchall()]
+        
+        conn.close()
+        
+        return {
+            "operaciones": operaciones,
+            "tipos": tipos,
+            "barrios": barrios
+        }
+    except Exception as e:
+        print(f"❌ Error obteniendo filtros dinámicos: {e}")
+        return {
+            "operaciones": ["alquiler", "venta"],
+            "tipos": ["casa", "departamento", "ph", "terreno", "oficina"],
+            "barrios": []
+        }
+
+# Agregar un nuevo endpoint para obtener filtros dinámicos
+@app.get("/filters")
+def get_filters():
+    """Endpoint para obtener filtros dinámicos desde la base de datos"""
+    try:
+        filters = get_dynamic_filters()
+        return {
+            "operaciones": filters["operaciones"],
+            "tipos": filters["tipos"], 
+            "barrios": filters["barrios"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error obteniendo filtros: {str(e)}")
+
+# Actualizar la función detect_filters para usar filtros dinámicos
+def detect_filters(text_lower: str) -> Dict[str, Any]:
+    """Detecta y extrae filtros del texto del usuario - CON FILTROS DINÁMICOS"""
+    import re
+    filters = {}
+    
+    # Obtener filtros dinámicos
+    dynamic_filters = get_dynamic_filters()
+    barrios_disponibles = [b.lower() for b in dynamic_filters["barrios"]]
+    tipos_disponibles = [t.lower() for t in dynamic_filters["tipos"]]
+    operaciones_disponibles = [o.lower() for o in dynamic_filters["operaciones"]]
+    
+    # Detección de barrio
+    barrio_detectado = None
+    for barrio in barrios_disponibles:
+        if barrio in text_lower:
+            barrio_detectado = barrio
+            break
+    
+    if not barrio_detectado:
+        barrio_patterns = [
+            r"en ([a-zA-Záéíóúñ\s]+)",
+            r"barrio ([a-zA-Záéíóúñ\s]+)",
+            r"zona ([a-zA-Záéíóúñ\s]+)",
+            r"de ([a-zA-Záéíóúñ\s]+)$",
+        ]
+        
+        for pattern in barrio_patterns:
+            match = re.search(pattern, text_lower)
+            if match:
+                potential_barrio = match.group(1).strip().lower()
+                if potential_barrio in barrios_disponibles:
+                    barrio_detectado = potential_barrio
+                    break
+    
+    if barrio_detectado:
+        filters["neighborhood"] = barrio_detectado
+    
+    # Detección de tipo
+    for tipo in tipos_disponibles:
+        if tipo in text_lower:
+            filters["tipo"] = tipo
+            break
+    
+    # Detección de operación
+    for operacion in operaciones_disponibles:
+        if operacion in text_lower:
+            filters["operacion"] = operacion
+            break
+    
+    # Detección de precio
+    precio_patterns = [
+        r"hasta \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"máximo \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"precio.*?\$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"menos de \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"\$?\s*([0-9\.]+)\s*(usd|dólares|dolares|pesos)",
+    ]
+    
+    for pattern in precio_patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            try:
+                precio = int(match.group(1).replace('.', ''))
+                filters["max_price"] = precio
+                break
+            except ValueError:
+                continue
+    
+    # Precio mínimo
+    min_price_match = re.search(r"desde \$?\s*([0-9\.]+)", text_lower)
+    if min_price_match:
+        try:
+            min_price = int(min_price_match.group(1).replace('.', ''))
+            filters["min_price"] = min_price
+        except ValueError:
+            pass
+    
+    # Ambientes
+    rooms_match = re.search(r"(\d+)\s*amb", text_lower) or re.search(r"(\d+)\s*ambiente", text_lower)
+    if rooms_match:
+        filters["min_rooms"] = int(rooms_match.group(1))
+
+    # Metros cuadrados
+    sqm_match = re.search(r"(\d+)\s*m2", text_lower) or re.search(r"(\d+)\s*metros", text_lower)
+    if sqm_match:
+        filters["min_sqm"] = int(sqm_match.group(1))
+
+    return filters    
+    
+    
+    
+    
+    
     
 
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
@@ -631,46 +945,16 @@ def log_conversation(user_text, response_text, channel="web", response_time=0.0,
     except Exception as e:
         print(f"❌ Error en log: {e}")
 
+# En la función detect_filters, actualizar los tipos de propiedad y operaciones:
 def detect_filters(text_lower: str) -> Dict[str, Any]:
-    """Detecta y extrae filtros del texto del usuario - VERSIÓN MEJORADA Y GENÉRICA"""
+    """Detecta y extrae filtros del texto del usuario - AJUSTADO AL JSON"""
     import re
     filters = {}
     
-    barrio_keywords = [
-        'palermo', 'recoleta', 'belgrano', 'almagro', 'caballito',
-        'microcentro', 'balvanera', 'villa crespo', 'san telmo', 'boca',
-        'nuñez', 'monserrat', 'constitución', 'flores', 'parque chas',
-        'villa urquiza', 'boedo', 'villa luro', 'villa devoto', 'villa soldati',
-        'villa ramos mejía', 'liniers', 'mataderos', 'velez sarsfield', 'versalles',
-        'paternal', 'chacarita', 'agronomia', 'villa pueyrredón', 'saavedra',
-        'coghlan', 'belgrano r', 'belgrano c', 'nuñez', 'olivos', 'san isidro',
-        'vicente lopez', 'puerto madero', 'colegiales', 'soho', 'barrio norte'
-    ]
     
-    operacion_keywords = {
-        'alquiler': 'alquiler',
-        'alquilar': 'alquiler', 
-        'renta': 'alquiler',
-        'venta': 'venta',
-        'comprar': 'venta',
-        'compra': 'venta',
-        'vender': 'venta'
-    }
     
-    tipo_keywords = {
-        'departamento': 'departamento',
-        'depto': 'departamento',
-        'casa': 'casa',
-        'ph': 'ph',
-        'casaquinta': 'casaquinta',
-        'terreno': 'terreno',
-        'terrenos': 'terreno',
-        'lote': 'terreno',
-        'lotes': 'terreno'
-    }
-    
+    # Detección de barrio
     barrio_detectado = None
-    
     for barrio in barrio_keywords:
         if barrio in text_lower:
             barrio_detectado = barrio
@@ -681,44 +965,38 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
             r"en ([a-zA-Záéíóúñ\s]+)",
             r"barrio ([a-zA-Záéíóúñ\s]+)",
             r"zona ([a-zA-Záéíóúñ\s]+)",
-            r"de ([a-zA-Záéíóúñ\s]+)$",
-            r"el de ([a-zA-Záéíóúñ\s]+)",
-            r"la de ([a-zA-Záéíóúñ\s]+)",
         ]
         
         for pattern in barrio_patterns:
             match = re.search(pattern, text_lower)
             if match:
                 potential_barrio = match.group(1).strip().lower()
-                if (
-                    potential_barrio in barrio_keywords and 
-                    potential_barrio not in operacion_keywords and
-                    potential_barrio not in tipo_keywords
-                ):
+                if potential_barrio in barrio_keywords:
                     barrio_detectado = potential_barrio
                     break
     
     if barrio_detectado:
         filters["neighborhood"] = barrio_detectado
     
+    # Detección de tipo
     for keyword, tipo in tipo_keywords.items():
         if keyword in text_lower:
             filters["tipo"] = tipo
             break
     
+    # Detección de operación
     for keyword, operacion in operacion_keywords.items():
         if keyword in text_lower:
             filters["operacion"] = operacion
             break
     
+    # Detección de precio (maneja USD y ARS)
     precio_patterns = [
-        r"hasta \$?\s*([0-9\.]+)",
-        r"máximo \$?\s*([0-9\.]+)",
-        r"precio.*?\$?\s*([0-9\.]+)",
-        r"menos de \$?\s*([0-9\.]+)",
-        r"\$?\s*([0-9\.]+)\s*pesos",
-        r"de \$?\s*([0-9\.]+)",
-        r"valor.*?\$?\s*([0-9\.]+)",
+        r"hasta \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"máximo \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"precio.*?\$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"menos de \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
+        r"\$?\s*([0-9\.]+)\s*(usd|dólares|dolares|pesos)",
     ]
     
     for pattern in precio_patterns:
@@ -726,11 +1004,17 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
         if match:
             try:
                 precio = int(match.group(1).replace('.', ''))
-                filters["max_price"] = precio
+                # Si menciona USD, ajustar el rango (los precios en USD son más bajos)
+                if any(moneda in text_lower for moneda in ['usd', 'dólar', 'dolar']):
+                    filters["max_price"] = precio
+                else:
+                    # Asumir ARS para precios altos
+                    filters["max_price"] = precio
                 break
             except ValueError:
                 continue
     
+    # Precio mínimo
     min_price_match = re.search(r"desde \$?\s*([0-9\.]+)", text_lower)
     if min_price_match:
         try:
@@ -739,16 +1023,117 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
         except ValueError:
             pass
     
-    rooms_match = re.search(r"(\d+)\s*amb", text_lower)
+    # Ambientes
+    rooms_match = re.search(r"(\d+)\s*amb", text_lower) or re.search(r"(\d+)\s*ambiente", text_lower)
     if rooms_match:
         filters["min_rooms"] = int(rooms_match.group(1))
 
+    # Metros cuadrados
     sqm_match = re.search(r"(\d+)\s*m2", text_lower) or re.search(r"(\d+)\s*metros", text_lower)
     if sqm_match:
         filters["min_sqm"] = int(sqm_match.group(1))
 
     return filters
 
+# En la función build_prompt, mejorar el formateo de propiedades:
+def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
+    whatsapp_tone = channel == "whatsapp"
+
+    if property_details:
+        # Formatear detalles específicos de propiedad según JSON
+        detalles = f"""
+Título: {property_details.get('titulo', 'N/A')}
+Barrio: {property_details.get('barrio', 'N/A')}
+Precio: {property_details.get('moneda_precio', 'USD')} {property_details.get('precio', 'N/A'):,}
+Ambientes: {property_details.get('ambientes', 'N/A')}
+Metros cuadrados: {property_details.get('metros_cuadrados', 'N/A')}m²
+Operación: {property_details.get('operacion', 'N/A')}
+Tipo: {property_details.get('tipo', 'N/A')}
+Descripción: {property_details.get('descripcion', 'N/A')}
+Dirección: {property_details.get('direccion', 'N/A')}
+Antigüedad: {property_details.get('antiguedad', 'N/A')} años
+Expensas: {property_details.get('moneda_expensas', 'ARS')} {property_details.get('expensas', 'N/A')}
+Amenities: {property_details.get('amenities', 'N/A')}
+Cochera: {property_details.get('cochera', 'No')}
+Balcón: {property_details.get('balcon', 'No')}
+Pileta: {property_details.get('pileta', 'No')}
+Aire acondicionado: {property_details.get('aire_acondicionado', 'No')}
+Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
+"""
+        return (
+            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre una propiedad específica:\n"
+            + detalles
+            + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara. "
+            "Destacá las características más importantes según el tipo de propiedad."
+            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        )
+    
+    if results is not None and results:
+        # Lista de emojis según tipo de propiedad
+        property_emojis = {
+            'casa': '🏠',
+            'departamento': '🏢', 
+            'ph': '🏡',
+            'terreno': '📐',
+            'oficina': '🏢',
+            'casaquinta': '🏘️'
+        }
+        
+        # Formatear propiedades con estructura específica
+        properties_list = []
+        for i, r in enumerate(results[:6]):
+            emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
+            moneda = r.get('moneda_precio', 'USD')
+            precio = f"{moneda} {r['precio']:,.0f}" if r['precio'] > 0 else "Consultar"
+            
+            property_info = f"{emoji} **{r['titulo']}**\n"
+            property_info += f"   • 📍 {r['barrio']}\n"
+            property_info += f"   • 💰 {precio}\n"
+            property_info += f"   • 🏠 {r['ambientes']} amb | {r['metros_cuadrados']} m²\n"
+            property_info += f"   • 📋 {r['operacion'].title()} | {r['tipo'].title()}"
+            
+            if r.get('descripcion'):
+                desc = r['descripcion'][:60] + '...' if len(r.get('descripcion', '')) > 60 else r['descripcion']
+                property_info += f"\n   • 📝 {desc}"
+            
+            properties_list.append(property_info)
+        
+        properties_formatted = "\n\n".join(properties_list)
+        
+        return (
+            style_hint + f"\n\n👋 ¡Hola! Encontré estas propiedades que podrían interesarte:\n\n"
+            + properties_formatted
+            + "\n\n💡 **Para refinar la búsqueda, podés:**\n"
+            + "- Especificar el tipo de propiedad (casa, depto, terreno, oficina)\n"
+            + "- Indicar el rango de precio en USD o pesos\n" 
+            + "- Elegir la zona o barrio preferido\n"
+            + "- Decir la cantidad de ambientes necesarios\n\n"
+            + "¿Te interesa alguna en particular? Podés pedir más detalles."
+            + ("\nUsá emojis para hacerlo más amigable." if whatsapp_tone else "")
+        )
+    elif results is not None:
+        return (
+            f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
+            f"📭 No encontré propiedades que coincidan exactamente con tu búsqueda.\n\n"
+            "💡 **Te sugiero:**\n"
+            "- Ampliar el rango de precio\n"
+            "- Considerar barrios cercanos\n"
+            "- Probar con menos filtros\n\n"
+            "¿Querés que ajuste algún criterio de búsqueda?"
+            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        )
+    else:
+        return (
+            f"{style_hint}\n\n👋 ¡Hola! Soy tu asistente de Dante Propiedades.\n\n"
+            f"Te ayudo a encontrar la propiedad ideal. Tenemos:\n"
+            f"• 🏠 Casas y departamentos\n"
+            f"• 📐 Terrenos y PH\n" 
+            f"• 🏢 Oficinas y casasquintas\n"
+            f"• 💰 En venta y alquiler\n\n"
+            f"Podés usar los filtros o contarme directamente qué necesitás.\n\n"
+            f"¡Contame, ¿qué tipo de propiedad buscás?"
+            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        )
 
 
 # ✅ ENDPOINTS MEJORADOS
@@ -894,11 +1279,13 @@ async def chat(request: ChatRequest):
         if not user_text:
             raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
 
-        propiedades_json = cargar_propiedades_json("properties.json")
-        barrios_disponibles = extraer_barrios(propiedades_json)
-        tipos_disponibles = extraer_tipos(propiedades_json)
-        operaciones_disponibles = extraer_operaciones(propiedades_json)
-        
+        dynamic_filters = get_dynamic_filters()
+        barrios_disponibles = dynamic_filters["barrios"]
+        tipos_disponibles = dynamic_filters["tipos"] 
+        operaciones_disponibles = dynamic_filters["operaciones"]
+       
+       
+       
         historial = get_historial_canal(channel)
         contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial) if historial else ""
 
