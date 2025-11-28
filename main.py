@@ -45,9 +45,10 @@ print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
 
 def call_gemini_with_rotation(prompt: str) -> str:
+    from config import WORKING_MODEL  # ✅ Importar modelo correcto desde config
     
     print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
-    print(f"🔧 Modelo: {MODEL}")
+    print(f"🔧 Modelo: {WORKING_MODEL}")  # ✅ Usar modelo de config
     print(f"🔑 Claves disponibles: {len(API_KEYS)}")
     
     # Si no hay API keys, retornar respuesta informativa
@@ -62,9 +63,9 @@ def call_gemini_with_rotation(prompt: str) -> str:
         print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
         
         try:
-            import google.generativeai as genai
+            import google.generativeai as genai  # ✅ Import aquí (correcto)
             genai.configure(api_key=key.strip())
-            model = genai.GenerativeModel(MODEL)
+            model = genai.GenerativeModel(WORKING_MODEL)  # ✅ Usar modelo de config
             
             response = model.generate_content(
                 prompt,
@@ -134,7 +135,6 @@ def diagnosticar_problemas():
         print(f"   ✅ Test response: {test_response[:50]}...")
     except Exception as e:
         print(f"   ❌ Error con Gemini client: {e}")
-
 # Ejecutar diagnóstico inmediatamente
 diagnosticar_problemas()
 
@@ -235,7 +235,7 @@ app = FastAPI(
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 CACHE_DURATION = 300  # 5 minutos para cache
-MODEL = "gemini-1.5-flash"  # Modelo para Gemini AI
+# MODEL = "gemini-1.5-flash"  # Modelo para Gemini AI
 
 app.add_middleware(
     CORSMiddleware,
@@ -329,8 +329,8 @@ def cargar_propiedades_a_db():
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
+        # if os.path.exists(DB_PATH):
+        #     os.remove(DB_PATH)
             print("🗑️ Base de datos propiedades eliminada forzadamente")
         if os.path.exists(LOG_PATH):
             os.remove(LOG_PATH)
