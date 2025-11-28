@@ -1,4 +1,5 @@
 """
+Backend para Dante Propiedades - Asistente Inmobiliario con IA
 """
 import os
 import re
@@ -15,221 +16,60 @@ from fastapi.openapi.utils import get_openapi
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
+# Importar configuración
+try:
+    from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
+except ImportError:
+    # Valores por defecto si config.py no existe
+    API_KEYS = os.environ.get("GEMINI_API_KEYS", "").split(",") if os.environ.get("GEMINI_API_KEYS") else []
+    ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
+    MODEL = os.environ.get("WORKING_MODEL", "gemini-pro")
 
-
-// Variable global para almacenar los filtros dinámicos
-let filtrosDinamicos = {
-    operaciones: [],
-    tipos: [],
-    barrios: []
-};
-
-// Función para cargar filtros dinámicos desde el backend
-async function cargarFiltrosDinamicos() {
-    try {
-        console.log('🔄 Cargando filtros dinámicos...');
-        const response = await fetch(API_URL.replace('/chat', '/filters'));
-        
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}`);
-        }
-        
-        const data = await response.json();
-        filtrosDinamicos = data;
-        
-        console.log('✅ Filtros cargados:', filtrosDinamicos);
-        
-        // Actualizar los selectores
-        actualizarSelectoresFiltros();
-        
-    } catch (error) {
-        console.error('❌ Error cargando filtros:', error);
-        // Usar valores por defecto si falla
-        filtrosDinamicos = {
-            operaciones: ["alquiler", "venta"],
-            tipos: ["casa", "departamento", "ph", "terreno", "oficina"],
-            barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
-        };
-        actualizarSelectoresFiltros();
-    }
+# Variables globales para filtros dinámicos
+filtros_dinamicos = {
+    "operaciones": [],
+    "tipos": [],
+    "barrios": []
 }
 
-// Función para actualizar los selectores con los filtros dinámicos
-function actualizarSelectoresFiltros() {
-    // Actualizar operaciones
-    const selectOperacion = document.getElementById('operacion');
-    selectOperacion.innerHTML = '<option value="">Todas las operaciones</option>';
-    
-    filtrosDinamicos.operaciones.forEach(operacion => {
-        if (operacion && operacion.trim()) {
-            const option = document.createElement('option');
-            option.value = operacion.toLowerCase();
-            option.textContent = operacion.charAt(0).toUpperCase() + operacion.slice(1);
-            selectOperacion.appendChild(option);
-        }
-    });
-
-    // Actualizar barrios
-    const selectBarrio = document.getElementById('barrio');
-    selectBarrio.innerHTML = '<option value="">Todos los barrios</option>';
-    
-    filtrosDinamicos.barrios.forEach(barrio => {
-        if (barrio && barrio.trim()) {
-            const option = document.createElement('option');
-            option.value = barrio.toLowerCase();
-            option.textContent = barrio;
-            selectBarrio.appendChild(option);
-        }
-    });
-
-    // Actualizar tipos
-    const selectTipo = document.getElementById('tipo');
-    selectTipo.innerHTML = '<option value="">Todos los tipos</option>';
-    
-    filtrosDinamicos.tipos.forEach(tipo => {
-        if (tipo && tipo.trim()) {
-            const option = document.createElement('option');
-            option.value = tipo.toLowerCase();
-            option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
-            selectTipo.appendChild(option);
-        }
-    });
-
-    console.log('✅ Selectores actualizados con filtros dinámicos');
+# Palabras clave para detección de filtros
+barrio_keywords = ["colegiales", "palermo", "boedo", "belgrano", "recoleta", "almagro", "villa crespo", "san isidro", "vicente lopez"]
+tipo_keywords = {
+    "departamento": "departamento",
+    "depto": "departamento", 
+    "casa": "casa",
+    "ph": "ph",
+    "casaquinta": "casaquinta",
+    "terreno": "terreno",
+    "oficina": "oficina"
+}
+operacion_keywords = {
+    "alquiler": "alquiler",
+    "alquilar": "alquiler",
+    "venta": "venta",
+    "comprar": "venta",
+    "vender": "venta"
 }
 
-// Función para formatear filtros que muestra los nombres correctos
-function formatearFiltrosParaMensaje(filtros) {
-    const partes = [];
-    
-    if (filtros.operacion) {
-        const operacionFormateada = filtros.operacion.charAt(0).toUpperCase() + filtros.operacion.slice(1);
-        partes.push(operacionFormateada);
-    }
-    
-    if (filtros.neighborhood) {
-        const barrioFormateado = filtros.neighborhood.split(' ')
-            .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
-            .join(' ');
-        partes.push(`barrio ${barrioFormateado}`);
-    }
-    
-    if (filtros.tipo) {
-        const tipoFormateado = filtros.tipo.charAt(0).toUpperCase() + filtros.tipo.slice(1);
-        partes.push(`tipo ${tipoFormateado}`);
-    }
-    
-    if (filtros.min_rooms) {
-        partes.push(`mínimo ${filtros.min_rooms} ambientes`);
-    }
-    
-    if (filtros.min_price || filtros.max_price) {
-        let precio = 'precio';
-        if (filtros.min_price) precio += ` desde $${filtros.min_price.toLocaleString()}`;
-        if (filtros.max_price) precio += ` hasta $${filtros.max_price.toLocaleString()}`;
-        partes.push(precio);
-    }
-    
-    if (filtros.min_sqm || filtros.max_sqm) {
-        let metros = 'metros';
-        if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
-        if (filtros.max_sqm) metros += ` hasta ${filtros.max_sqm}m²`;
-        partes.push(metros);
-    }
-    
-    return partes.join(', ');
-}
-
-
-// Modificar la función aplicarFiltros para usar nombres formateados
-function aplicarFiltros() {
-    const filtros = obtenerFiltrosSeleccionados();
-    
-    if (Object.keys(filtros).length === 0) {
-        alert('Seleccioná al menos un filtro para buscar.');
-        return;
-    }
-
-    // Construir mensaje natural con nombres formateados
-    const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
-    
-    let mensajeNatural = `Buscar propiedades`;
-    if (descripcionFiltros) {
-        mensajeNatural += ` con ${descripcionFiltros}`;
-    }
-    
-    input.value = mensajeNatural;
-    
-    // Enviar automáticamente
-    send();
-}
-
-// Llamar a cargarFiltrosDinamicos cuando se carga la página
-document.addEventListener('DOMContentLoaded', function() {
-    cargarFiltrosDinamicos();
-});
-
-// También puedes llamarlo después del reset del chat
-function resetearChat() {
-    if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
-        chatBox.innerHTML = '';
-        conversacionActual = [];
-        
-        contextoActual = {
-            tipo: null,
-            resultados: [],
-            propiedad_focus: null,
-            filtros_usados: {},
-            timestamp: null
-        };
-        
-        limpiarFiltros();
-        
-        // Recargar filtros por si hay cambios
-        cargarFiltrosDinamicos();
-        
-        setTimeout(() => {
-            addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
-        }, 300);
-    }
-}
-
-
-# Después de las importaciones, agrega:
-print(f"🔍 API Keys cargadas: {API_KEYS}")
+# Diagnóstico inicial
+print(f"🔍 API Keys cargadas: {len(API_KEYS)}")
 print(f"🔍 Endpoint: {ENDPOINT}")
+print(f"🔍 Model: {MODEL}")
 
-# Al inicio, después de las importaciones
-print("🔍 TODAS LAS VARIABLES DE ENTORNO:")
+# Mostrar variables de entorno relevantes
+print("🔍 VARIABLES DE ENTORNO RELACIONADAS:")
 for key, value in os.environ.items():
-    if "GEMINI" in key or "API" in key:
-        print(f"   {key}: {value}")
-
-
-
-# 🔥 AGREGAR ESTO TEMPORALMENTE:
-print("🔍 TODAS LAS VARIABLES DE ENTORNO RELACIONADAS:")
-for key, value in os.environ.items():
-    if "GEMINI" in key.upper() or "API" in key.upper() or "KEY" in key.upper():
-        print(f"   {key}: {value[:20]}...")  # Mostrar solo primeros 20 chars
-
-print("🔍 VARIABLE GEMINI_API_KEYS específica:")
-print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
-
-print("🔍 VARIABLE GEMINI_KEYS específica:")
-print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
-
-
+    if any(term in key.upper() for term in ["GEMINI", "API", "KEY"]):
+        masked_value = value[:10] + "..." if len(value) > 10 else value
+        print(f"   {key}: {masked_value}")
 
 def call_gemini_with_rotation(prompt: str) -> str:
-    
+    """Función para llamar a Gemini API con rotación de claves"""
     print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
     print(f"🔧 Modelo: {MODEL}")
     print(f"🔑 Claves disponibles: {len(API_KEYS)}")
     
-    # Si no hay API keys, retornar respuesta informativa
     if not API_KEYS or len([k for k in API_KEYS if k.strip()]) == 0:
         print("⚠️ No hay API keys configuradas, usando modo básico")
         return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!**"
@@ -259,20 +99,16 @@ def call_gemini_with_rotation(prompt: str) -> str:
             
             answer = response.text.strip()
             print(f"✅ Éxito con clave {i+1}")
-            
             return answer
 
         except Exception as e:
             error_type = type(e).__name__
-            
-            # 🔥 MENSAJES MÁS LIMPIOS
             if "ResourceExhausted" in error_type or "429" in str(e):
                 print(f"❌ Clave {i+1} agotada")
             elif "PermissionDenied" in error_type or "401" in str(e):
                 print(f"❌ Clave {i+1} no autorizada") 
             else:
                 print(f"❌ Clave {i+1} error: {error_type}")
-            
             continue
     
     return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **Para respuestas inteligentes completas** se requiere configurar las API keys de Gemini AI.\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **La búsqueda funciona perfectamente**, solo falta la IA conversacional para un servicio completo."
@@ -299,7 +135,6 @@ def diagnosticar_problemas():
     
     # 3. Verificar config
     try:
-        from config import API_KEYS, ENDPOINT
         print(f"   ✅ Config: {len(API_KEYS)} API keys cargadas")
         print(f"   ✅ Endpoint: {ENDPOINT}")
     except Exception as e:
@@ -307,7 +142,6 @@ def diagnosticar_problemas():
     
     # 4. Verificar gemini client
     try:
-        # Usar la función local definida en este archivo
         test_response = call_gemini_with_rotation("Test")
         print("   ✅ Gemini client funcional")
         print(f"   ✅ Test response: {test_response[:50]}...")
@@ -316,8 +150,6 @@ def diagnosticar_problemas():
 
 # Ejecutar diagnóstico inmediatamente
 diagnosticar_problemas()
-
-
 
 # ✅ MODELOS DE DATOS PYDANTIC
 class ChatRequest(BaseModel):
@@ -361,7 +193,6 @@ class PropertyResponse(BaseModel):
     moneda_precio: Optional[str] = None
     moneda_expensas: Optional[str] = None
     fecha_procesamiento: Optional[str] = None
-
 
 # ✅ MÉTRICAS Y ESTADÍSTICAS
 class Metrics:
@@ -414,7 +245,6 @@ app = FastAPI(
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 CACHE_DURATION = 300  # 5 minutos para cache
-# MODEL se importa desde config.py: from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 app.add_middleware(
     CORSMiddleware,
@@ -447,9 +277,21 @@ def get_cached_results(filters: Dict[str, Any]) -> Optional[List[Dict]]:
         return cached['results']
     return None
 
-
-
 # ✅ FUNCIONES MEJORADAS
+def cargar_propiedades_json(filename):
+    try:
+        with open(filename, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"⚠️ Archivo {filename} no encontrado")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"⚠️ Error decodificando JSON en {filename}: {e}")
+        return []
+    except Exception as e:
+        print(f"⚠️ Error al cargar {filename}: {e}")
+        return []
+
 def cargar_propiedades_a_db():
     """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
     try:
@@ -497,8 +339,6 @@ def cargar_propiedades_a_db():
                 
             except Exception as e:
                 print(f"⚠️ Error cargando propiedad {p.get('titulo', 'N/A')}: {e}")
-                import traceback
-                traceback.print_exc()
                 continue
         
         conn.commit()
@@ -507,9 +347,6 @@ def cargar_propiedades_a_db():
         
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
-        import traceback
-        traceback.print_exc()
-
 
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
@@ -588,23 +425,6 @@ def initialize_databases():
         
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
-        import traceback
-        traceback.print_exc()
-
-def cargar_propiedades_json(filename):
-    try:
-        with open(filename, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"⚠️ Archivo {filename} no encontrado")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"⚠️ Error decodificando JSON en {filename}: {e}")
-        return []
-    except Exception as e:
-        print(f"⚠️ Error al cargar {filename}: {e}")
-        return []
-
 
 def get_historial_canal(canal="web", limite=3):
     try:
@@ -643,8 +463,6 @@ def query_properties_cached(filters_json: str):
     """Versión cacheada de query_properties"""
     filters = json.loads(filters_json) if filters_json else {}
     return query_properties(filters)
-
-
 
 def query_properties(filters=None):
     try:
@@ -722,8 +540,7 @@ def query_properties(filters=None):
     except Exception as e:
         print(f"❌ Error en query_properties: {e}")
         return []
-    
-# Agregar estas funciones para obtener datos dinámicos
+
 def get_dynamic_filters():
     """Obtiene filtros dinámicos desde la base de datos"""
     try:
@@ -758,21 +575,6 @@ def get_dynamic_filters():
             "barrios": []
         }
 
-# Agregar un nuevo endpoint para obtener filtros dinámicos
-@app.get("/filters")
-def get_filters():
-    """Endpoint para obtener filtros dinámicos desde la base de datos"""
-    try:
-        filters = get_dynamic_filters()
-        return {
-            "operaciones": filters["operaciones"],
-            "tipos": filters["tipos"], 
-            "barrios": filters["barrios"]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo filtros: {str(e)}")
-
-# Actualizar la función detect_filters para usar filtros dinámicos
 def detect_filters(text_lower: str) -> Dict[str, Any]:
     """Detecta y extrae filtros del texto del usuario - CON FILTROS DINÁMICOS"""
     import re
@@ -860,182 +662,8 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
     if sqm_match:
         filters["min_sqm"] = int(sqm_match.group(1))
 
-    return filters    
-    
-    
-    
-    
-    
-    
-
-def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
-    whatsapp_tone = channel == "whatsapp"
-
-    if property_details:
-        details = "\n".join([f"- {key.replace('_', ' ').capitalize()}: {value}" for key, value in property_details.items()])
-        return (
-            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['titulo']}'. Aquí están todos los detalles de la propiedad:\n"
-            + details
-            + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara y atractiva. "
-            "Ofrecé ayuda personalizada y sugerí continuar la conversación por WhatsApp. "
-            "Cerrá con un agradecimiento y tono amable."
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-    
-    if results is not None and results:
-        # Lista de emojis de vivienda para separar propiedades
-        house_emojis = ["🏠", "🏡", "🏘️", "🏢", "🏚️", "🏗️", "🏬", "🏪"]
-        
-        # Formatear propiedades con estructura específica
-        properties_list = []
-        for i, r in enumerate(results[:6]):  # Limitar a 6 para mejor legibilidad
-            emoji = house_emojis[i % len(house_emojis)]
-            property_info = f"{emoji} **{r['titulo']}**\n   • Barrio: {r['barrio']}\n   • Precio: ${r['precio']:,.0f}\n   • {r['ambientes']} ambientes | {r['metros_cuadrados']} m²"
-            if r.get('descripcion'):
-                property_info += f"\n   • {r['descripcion'][:50]}{'...' if len(r.get('descripcion', '')) > 50 else ''}"
-            properties_list.append(property_info)
-        
-        properties_formatted = "\n\n".join(properties_list)
-        
-        return (
-            style_hint + f"\n\n👋 ¡Hola! Gracias por contactarnos. \nHemos encontrado opciones que podrían interesarte:\n\n"
-            + properties_formatted
-            + "\n\n✨ **Para ayudarte mejor, contame:**\n"
-            + "- ¿Qué tipo de propiedad buscás? (casa, depto, casaquinta...)\n"
-            + "- ¿Cuál es tu rango de precio?\n"
-            + "- ¿Qué características son importantes para vos?\n\n"
-            + "📲 Si querés una atención más rápida y personalizada, escribime por WhatsApp al [Número].\n"
-            + "¡Estoy aquí para ayudarte a encontrar tu próximo hogar!"
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-    elif results is not None:
-        return (
-            f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
-            f"Lamentablemente no encontré propiedades que coincidan exactamente con tu búsqueda en {filters.get('neighborhood', 'tu zona')}. \n\n"
-            "✨ **Te ayudo a encontrar alternativas:**\n"
-            "- ¿Podrías ampliar el rango de precio?\n"
-            "- ¿Qué tal considerar barrios cercanos?\n"
-            "- ¿Hay alguna característica que no sea imprescindible?\n\n"
-            "📲 Si querés una búsqueda personalizada, escribime por WhatsApp al [Número].\n"
-            "¡Estoy aquí para ayudarte a encontrar tu próximo hogar!"
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-    else:
-        return (
-            f"{style_hint}\n\n👋 ¡Hola! Soy tu asistente de Dante Propiedades. \n\n"
-            f"Te ayudo a encontrar la propiedad ideal para vos. Podés:\n"
-            f"- Usar los filtros de búsqueda a la izquierda\n"
-            f"- Contarme directamente qué necesitás\n"
-            f"- Combinar filtros con descripciones personalizadas\n\n"
-            f"🏠 Todas las propiedades aparecen separadas por emojis para mejor visualización.\n\n"
-            f"¡Empecemos! ¿Qué propiedad estás buscando?"
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-
-def log_conversation(user_text, response_text, channel="web", response_time=0.0, search_performed=False, results_count=0):
-    try:
-        conn = sqlite3.connect(LOG_PATH)
-        cur = conn.cursor()
-        cur.execute('''
-            INSERT INTO logs (timestamp, channel, user_message, bot_response, response_time, search_performed, results_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (datetime.now().isoformat(), channel, user_text, response_text, response_time, search_performed, results_count))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"❌ Error en log: {e}")
-
-# En la función detect_filters, actualizar los tipos de propiedad y operaciones:
-def detect_filters(text_lower: str) -> Dict[str, Any]:
-    """Detecta y extrae filtros del texto del usuario - AJUSTADO AL JSON"""
-    import re
-    filters = {}
-    
-    
-    
-    # Detección de barrio
-    barrio_detectado = None
-    for barrio in barrio_keywords:
-        if barrio in text_lower:
-            barrio_detectado = barrio
-            break
-    
-    if not barrio_detectado:
-        barrio_patterns = [
-            r"en ([a-zA-Záéíóúñ\s]+)",
-            r"barrio ([a-zA-Záéíóúñ\s]+)",
-            r"zona ([a-zA-Záéíóúñ\s]+)",
-        ]
-        
-        for pattern in barrio_patterns:
-            match = re.search(pattern, text_lower)
-            if match:
-                potential_barrio = match.group(1).strip().lower()
-                if potential_barrio in barrio_keywords:
-                    barrio_detectado = potential_barrio
-                    break
-    
-    if barrio_detectado:
-        filters["neighborhood"] = barrio_detectado
-    
-    # Detección de tipo
-    for keyword, tipo in tipo_keywords.items():
-        if keyword in text_lower:
-            filters["tipo"] = tipo
-            break
-    
-    # Detección de operación
-    for keyword, operacion in operacion_keywords.items():
-        if keyword in text_lower:
-            filters["operacion"] = operacion
-            break
-    
-    # Detección de precio (maneja USD y ARS)
-    precio_patterns = [
-        r"hasta \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
-        r"máximo \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
-        r"precio.*?\$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
-        r"menos de \$?\s*([0-9\.]+)\s*(usd|dólares|dolares)?",
-        r"\$?\s*([0-9\.]+)\s*(usd|dólares|dolares|pesos)",
-    ]
-    
-    for pattern in precio_patterns:
-        match = re.search(pattern, text_lower)
-        if match:
-            try:
-                precio = int(match.group(1).replace('.', ''))
-                # Si menciona USD, ajustar el rango (los precios en USD son más bajos)
-                if any(moneda in text_lower for moneda in ['usd', 'dólar', 'dolar']):
-                    filters["max_price"] = precio
-                else:
-                    # Asumir ARS para precios altos
-                    filters["max_price"] = precio
-                break
-            except ValueError:
-                continue
-    
-    # Precio mínimo
-    min_price_match = re.search(r"desde \$?\s*([0-9\.]+)", text_lower)
-    if min_price_match:
-        try:
-            min_price = int(min_price_match.group(1).replace('.', ''))
-            filters["min_price"] = min_price
-        except ValueError:
-            pass
-    
-    # Ambientes
-    rooms_match = re.search(r"(\d+)\s*amb", text_lower) or re.search(r"(\d+)\s*ambiente", text_lower)
-    if rooms_match:
-        filters["min_rooms"] = int(rooms_match.group(1))
-
-    # Metros cuadrados
-    sqm_match = re.search(r"(\d+)\s*m2", text_lower) or re.search(r"(\d+)\s*metros", text_lower)
-    if sqm_match:
-        filters["min_sqm"] = int(sqm_match.group(1))
-
     return filters
 
-# En la función build_prompt, mejorar el formateo de propiedades:
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
@@ -1135,8 +763,39 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
         )
 
+def log_conversation(user_text, response_text, channel="web", response_time=0.0, search_performed=False, results_count=0):
+    try:
+        conn = sqlite3.connect(LOG_PATH)
+        cur = conn.cursor()
+        cur.execute('''
+            INSERT INTO logs (timestamp, channel, user_message, bot_response, response_time, search_performed, results_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (datetime.now().isoformat(), channel, user_text, response_text, response_time, search_performed, results_count))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"❌ Error en log: {e}")
 
 # ✅ ENDPOINTS MEJORADOS
+@app.get("/filters")
+def get_filters():
+    """Endpoint para obtener filtros dinámicos desde la base de datos"""
+    try:
+        filters = get_dynamic_filters()
+        return {
+            "operaciones": filters["operaciones"],
+            "tipos": filters["tipos"], 
+            "barrios": filters["barrios"]
+        }
+    except Exception as e:
+        print(f"❌ Error en endpoint /filters: {e}")
+        # Devolver valores por defecto en caso de error
+        return {
+            "operaciones": ["alquiler", "venta"],
+            "tipos": ["casa", "departamento", "ph", "terreno", "oficina"],
+            "barrios": ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+        }
+
 @app.get("/status")
 def status():
     """Endpoint de estado del servicio"""
@@ -1259,9 +918,6 @@ def debug_info():
     
     return info
 
-
-
-
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Endpoint principal para chat con el asistente inmobiliario"""
@@ -1283,8 +939,6 @@ async def chat(request: ChatRequest):
         barrios_disponibles = dynamic_filters["barrios"]
         tipos_disponibles = dynamic_filters["tipos"] 
         operaciones_disponibles = dynamic_filters["operaciones"]
-       
-       
        
         historial = get_historial_canal(channel)
         contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial) if historial else ""
@@ -1542,7 +1196,6 @@ async def chat(request: ChatRequest):
             search_performed=False,
             propiedades=None
         )
-        
         
 @app.get("/metrics")
 def get_metrics():
