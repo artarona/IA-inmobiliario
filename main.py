@@ -21,12 +21,12 @@ from logic.database import (
     get_historial_canal,
     get_last_bot_response,
     log_conversation,
-    get_dynamic_filters,
     DB_PATH,
     LOG_PATH
 )
 from logic.filters import detect_filters
 from logic.gemini_client import call_gemini_with_rotation, build_prompt
+from logic.filter_data import BARRIOS, OPERACIONES, TIPOS
 
 # ✅ INICIALIZACIÓN Y CONFIGURACIÓN
 verificar_y_reparar_bd()
@@ -173,11 +173,10 @@ async def chat(request: ChatRequest):
         historial = get_historial_canal(channel)
         contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial) if historial else ""
         
-        dynamic_filters = get_dynamic_filters()
         contexto_dinamico = (
-            f"Barrios disponibles: {', '.join(dynamic_filters['barrios'])}.\n"
-            f"Tipos de propiedad: {', '.join(dynamic_filters['tipos'])}.\n"
-            f"Operaciones disponibles: {', '.join(dynamic_filters['operaciones'])}."
+            f"Barrios disponibles: {', '.join(BARRIOS)}.\n"
+            f"Tipos de propiedad: {', '.join(TIPOS)}.\n"
+            f"Operaciones disponibles: {', '.join(OPERACIONES)}."
         )
 
         style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp." if channel == "whatsapp" else "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
@@ -205,7 +204,12 @@ async def chat(request: ChatRequest):
 
 @app.get("/filters")
 def get_all_filters():
-    return get_dynamic_filters()
+    """Endpoint para obtener filtros estáticos desde filter_data."""
+    return {
+        "operaciones": OPERACIONES,
+        "tipos": TIPOS,
+        "barrios": BARRIOS
+    }
 
 @app.get("/properties", response_model=List[PropertyResponse])
 def get_properties_endpoint(
