@@ -426,8 +426,98 @@ def cargar_propiedades_a_db():
         
         # ✅ VERIFICACIÓN CRÍTICA: Solo cargar si la tabla está vacía
         cur.execute("SELECT COUNT(*) FROM properties")
+        existing_count = cur.fetchone()[0]
         
+        if existing_count > 0:
+            print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
+            conn.close()
+            return
         
+        # Si llegamos aquí, la tabla está vacía, proceder con la carga
+        print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
+        
+        for prop in propiedades:
+            try:
+                # Limpiar y preparar datos
+                id_temporal = prop.get('id', '').strip() or f"temp_{hash(str(prop)) % 10000}"
+                titulo = prop.get('titulo', '').strip()
+                barrio = prop.get('barrio', '').strip()
+                
+                # Procesamiento de precio y expensas
+                precio_raw = prop.get('precio', 0)
+                expensas_raw = prop.get('expensas', 0)
+                
+                # Convertir a float, manejar valores vacíos/nulos
+                try:
+                    precio = float(precio_raw) if precio_raw not in ['', None, 'Consultar'] else 0
+                except:
+                    precio = 0
+                    
+                try:
+                    expensas = float(expensas_raw) if expensas_raw not in ['', None, 'Consultar'] else 0
+                except:
+                    expensas = 0
+                
+                # Otros campos numéricos
+                try:
+                    ambientes = int(prop.get('ambientes', 0)) if prop.get('ambientes') else 0
+                except:
+                    ambientes = 0
+                    
+                try:
+                    metros = float(prop.get('metros_cuadrados', 0)) if prop.get('metros_cuadrados') else 0
+                except:
+                    metros = 0
+                
+                # Insertar en la base de datos
+                cur.execute('''
+                    INSERT OR REPLACE INTO properties (
+                        id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
+                        operacion, tipo, descripcion, direccion, antiguedad, estado,
+                        orientacion, expensas, amenities, cochera, balcon, pileta,
+                        acepta_mascotas, aire_acondicionado, info_multimedia,
+                        documentos, videos, fotos, moneda_precio, moneda_expensas,
+                        fecha_procesamiento
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    id_temporal, titulo, barrio, precio, ambientes, metros,
+                    prop.get('operacion', '').strip(),
+                    prop.get('tipo', '').strip(),
+                    prop.get('descripcion', '').strip(),
+                    prop.get('direccion', '').strip(),
+                    prop.get('antiguedad', 0) if prop.get('antiguedad') else 0,
+                    prop.get('estado', '').strip(),
+                    prop.get('orientacion', '').strip(),
+                    expensas,
+                    prop.get('amenities', '').strip(),
+                    prop.get('cochera', '').strip(),
+                    prop.get('balcon', '').strip(),
+                    prop.get('pileta', '').strip(),
+                    prop.get('acepta_mascotas', '').strip(),
+                    prop.get('aire_acondicionado', '').strip(),
+                    prop.get('info_multimedia', '').strip(),
+                    prop.get('documentos', '').strip(),
+                    prop.get('videos', '').strip(),
+                    prop.get('fotos', '').strip(),
+                    prop.get('moneda_precio', 'ARS').strip(),
+                    prop.get('moneda_expensas', 'ARS').strip(),
+                    prop.get('fecha_procesamiento', '').strip()
+                ))
+                
+            except Exception as e:
+                print(f"⚠️ Error procesando propiedad {titulo}: {e}")
+                continue
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ {len(propiedades)} propiedades cargadas exitosamente en la base de datos")
+        
+    except Exception as e:
+        print(f"❌ Error cargando propiedades: {e}")
+        import traceback
+        traceback.print_exc()
+
 def extraer_barrios(propiedades):
     return sorted(set(p.get("barrio", "").lower() for p in propiedades if p.get("barrio")))
 
