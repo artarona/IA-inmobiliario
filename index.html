@@ -825,38 +825,38 @@
         }
 
         function aplicarFiltros() {
-                const filtros = obtenerFiltrosSeleccionados();
-                
-                if (Object.keys(filtros).length === 0) {
-                    alert('Seleccioná al menos un filtro para buscar.');
-                    return;
-                }
+            const filtros = obtenerFiltrosSeleccionados();
+            
+            if (Object.keys(filtros).length === 0) {
+                alert('Seleccioná al menos un filtro para buscar.');
+                return;
+            }
 
-                // Construir mensaje MÁS NATURAL para el backend
-                const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
-                
-                // Mensaje más natural que Gemini entenderá mejor
-                let mensajeNatural = `Buscar propiedades para ${filtros.operacion || 'alquiler o venta'}`;
-                
-                if (filtros.neighborhood) {
-                    mensajeNatural += ` en ${filtros.neighborhood}`;
-                }
-                if (filtros.tipo) {
-                    mensajeNatural += `, tipo ${filtros.tipo}`;
-                }
-                if (filtros.min_rooms) {
-                    mensajeNatural += `, mínimo ${filtros.min_rooms} ambientes`;
-                }
-                if (filtros.min_price || filtros.max_price) {
-                    mensajeNatural += `, precio`;
-                    if (filtros.min_price) mensajeNatural += ` desde $${filtros.min_price}`;
-                    if (filtros.max_price) mensajeNatural += ` hasta $${filtros.max_price}`;
-                }
-                
-                input.value = mensajeNatural;
-                
-                // Enviar automáticamente
-                send();
+            // Construir mensaje MÁS NATURAL para el backend
+            const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
+            
+            // Mensaje más natural que Gemini entenderá mejor
+            let mensajeNatural = `Buscar propiedades para ${filtros.operacion || 'alquiler o venta'}`;
+            
+            if (filtros.neighborhood) {
+                mensajeNatural += ` en ${filtros.neighborhood}`;
+            }
+            if (filtros.tipo) {
+                mensajeNatural += `, tipo ${filtros.tipo}`;
+            }
+            if (filtros.min_rooms) {
+                mensajeNatural += `, mínimo ${filtros.min_rooms} ambientes`;
+            }
+            if (filtros.min_price || filtros.max_price) {
+                mensajeNatural += `, precio`;
+                if (filtros.min_price) mensajeNatural += ` desde $${filtros.min_price}`;
+                if (filtros.max_price) mensajeNatural += ` hasta $${filtros.max_price}`;
+            }
+            
+            input.value = mensajeNatural;
+            
+            // Enviar automáticamente
+            send();
         }
 
         // Hacer las funciones accesibles globalmente
@@ -983,30 +983,30 @@
                     actualizarContexto([], {}, 'busqueda');
                 }
                     
-                    // Si no se realizó búsqueda pero es seguimiento, mantener contexto
-                    if (!data.search_performed && esSeguimiento) {
-                        // Mantener el contexto anterior para seguir la conversación
-                        console.log('🔄 Manteniendo contexto para seguimiento');
-                    }
-                    
-                    addMessage(mensajeMejorado);
-                } else if (data.error) {
-                    addMessage(`⚠️ Error: ${data.error}`);
-                } else {
-                    addMessage('❌ Respuesta inesperada del servidor');
+                // Si no se realizó búsqueda pero es seguimiento, mantener contexto
+                if (!data.search_performed && esSeguimiento) {
+                    // Mantener el contexto anterior para seguir la conversación
+                    console.log('🔄 Manteniendo contexto para seguimiento');
                 }
-
-                statusText.textContent = 'Conectado';
                 
-            } catch (error) {
-                console.error('Error:', error);
-                addMessage('⚠️ No se pudo conectar con el servidor. Por favor, intentá nuevamente en unos momentos.');
-                statusText.textContent = 'Error de conexión';
-            } finally {
-                hideTypingIndicator();
-                button.disabled = false;
-                input.focus();
+                addMessage(mensajeMejorado);
+            } else if (data.error) {
+                addMessage(`⚠️ Error: ${data.error}`);
+            } else {
+                addMessage('❌ Respuesta inesperada del servidor');
             }
+
+            statusText.textContent = 'Conectado';
+                
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage('⚠️ No se pudo conectar con el servidor. Por favor, intentá nuevamente en unos momentos.');
+            statusText.textContent = 'Error de conexión';
+        } finally {
+            hideTypingIndicator();
+            button.disabled = false;
+            input.focus();
+        }
         }
 
         // Event listeners
@@ -1038,4 +1038,3 @@
         checkServerStatus();
     </script>
 </body>
-</html>
