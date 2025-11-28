@@ -10,7 +10,7 @@ from functools import lru_cache
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.openapi.utils import get_openapi
 from datetime import datetime
 from typing import Optional, Dict, Any, List
@@ -42,28 +42,12 @@ print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
 print("🔍 VARIABLE GEMINI_KEYS específica:")
 print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
-def cargar_propiedades_json(filename):
-    """Carga propiedades desde archivo JSON"""
-    try:
-        with open(filename, "r", encoding="utf-8-sig") as f:
-            data = json.load(f)
-            print(f"✅ Archivo {filename} cargado exitosamente con {len(data)} elementos")
-            return data
-    except FileNotFoundError:
-        print(f"❌ Archivo {filename} no encontrado")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"❌ Error decodificando JSON en {filename}: {e}")
-        return []
-    except Exception as e:
-        print(f"❌ Error al cargar {filename}: {e}")
-        return []
+
 
 def call_gemini_with_rotation(prompt: str) -> str:
-    from config import WORKING_MODEL  # ✅ Importar modelo correcto desde config
     
     print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
-    print(f"🔧 Modelo: {WORKING_MODEL}")  # ✅ Usar modelo de config
+    print(f"🔧 Modelo: {MODEL}")
     print(f"🔑 Claves disponibles: {len(API_KEYS)}")
     
     # Si no hay API keys, retornar respuesta informativa
@@ -78,9 +62,9 @@ def call_gemini_with_rotation(prompt: str) -> str:
         print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
         
         try:
-            import google.generativeai as genai  # ✅ Import aquí (correcto)
+            import google.generativeai as genai
             genai.configure(api_key=key.strip())
-            model = genai.GenerativeModel(WORKING_MODEL)  # ✅ Usar modelo de config
+            model = genai.GenerativeModel(MODEL)
             
             response = model.generate_content(
                 prompt,
@@ -150,6 +134,7 @@ def diagnosticar_problemas():
         print(f"   ✅ Test response: {test_response[:50]}...")
     except Exception as e:
         print(f"   ❌ Error con Gemini client: {e}")
+
 # Ejecutar diagnóstico inmediatamente
 diagnosticar_problemas()
 
@@ -250,7 +235,7 @@ app = FastAPI(
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 CACHE_DURATION = 300  # 5 minutos para cache
-# MODEL = "gemini-1.5-flash"  # Modelo para Gemini AI
+# MODEL se importa desde config.py: from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 app.add_middleware(
     CORSMiddleware,
@@ -297,18 +282,15 @@ def cargar_propiedades_a_db():
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
-        # ✅ VERIFICAR SI YA EXISTEN PROPIEDADES (CRÍTICO)
+        # Verificar si ya existen propiedades
         cur.execute("SELECT COUNT(*) FROM properties")
         existing_count = cur.fetchone()[0]
         
         if existing_count > 0:
-            print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
-            conn.close()
+            print(f"✅ Base de datos ya contiene {existing_count} propiedades, saltando carga")
             return
         
-        # Solo llegamos aquí si la tabla está vacía
-        print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
-        
+        # Solo crear las propiedades si la tabla está vacía
         propiedades_cargadas = 0
         for p in propiedades:
             try:
@@ -336,6 +318,8 @@ def cargar_propiedades_a_db():
                 
             except Exception as e:
                 print(f"⚠️ Error cargando propiedad {p.get('titulo', 'N/A')}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
         
         conn.commit()
@@ -347,18 +331,12 @@ def cargar_propiedades_a_db():
         import traceback
         traceback.print_exc()
 
+
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
-        # ✅ COMENTADO: Borrado forzoso de BD (para mantener persistencia)
-        # if os.path.exists(DB_PATH):
-        #     os.remove(DB_PATH)
-        #     print("🗑️ Base de datos propiedades eliminada forzadamente")
-        
-        # ✅ COMENTADO: Borrado forzoso de logs (para mantener persistencia)
-        # if os.path.exists(LOG_PATH):
-        #     os.remove(LOG_PATH)
-        #     print("🗑️ Base de datos logs eliminada forzadamente")
+        # Solo crear tablas si no existen (no eliminar datos existentes)
+        print("🔄 Inicializando bases de datos...")
         
         # Base de datos de logs
         conn = sqlite3.connect(LOG_PATH)
@@ -433,111 +411,20 @@ def initialize_databases():
         print(f"❌ Error inicializando bases de datos: {e}")
         import traceback
         traceback.print_exc()
-        
-# def cargar_propiedades_a_db():
-#     """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
-#     try:
-#         propiedades = cargar_propiedades_json("properties.json")
-#         if not propiedades:
-#             print("❌ No hay propiedades para cargar")
-#             return
-        
-#         conn = sqlite3.connect(DB_PATH)
-#         cur = conn.cursor()
-        
-#         # ✅ VERIFICACIÓN CRÍTICA: Solo cargar si la tabla está vacía
-#         cur.execute("SELECT COUNT(*) FROM properties")
-#         existing_count = cur.fetchone()[0]
-        
-#         if existing_count > 0:
-#             print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
-#             conn.close()
-#             return
-        
-#         # Si llegamos aquí, la tabla está vacía, proceder con la carga
-#         print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
-        
-#         for prop in propiedades:
-#             try:
-#                 # Limpiar y preparar datos
-#                 id_temporal = prop.get('id', '').strip() or f"temp_{hash(str(prop)) % 10000}"
-#                 titulo = prop.get('titulo', '').strip()
-#                 barrio = prop.get('barrio', '').strip()
-                
-#                 # Procesamiento de precio y expensas
-#                 precio_raw = prop.get('precio', 0)
-#                 expensas_raw = prop.get('expensas', 0)
-                
-#                 # Convertir a float, manejar valores vacíos/nulos
-#                 try:
-#                     precio = float(precio_raw) if precio_raw not in ['', None, 'Consultar'] else 0
-#                 except:
-#                     precio = 0
-                    
-#                 try:
-#                     expensas = float(expensas_raw) if expensas_raw not in ['', None, 'Consultar'] else 0
-#                 except:
-#                     expensas = 0
-                
-#                 # Otros campos numéricos
-#                 try:
-#                     ambientes = int(prop.get('ambientes', 0)) if prop.get('ambientes') else 0
-#                 except:
-#                     ambientes = 0
-                    
-#                 try:
-#                     metros = float(prop.get('metros_cuadrados', 0)) if prop.get('metros_cuadrados') else 0
-#                 except:
-#                     metros = 0
-                
-#                 # Insertar en la base de datos
-#                 cur.execute('''
-#                     INSERT OR REPLACE INTO properties (
-#                         id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
-#                         operacion, tipo, descripcion, direccion, antiguedad, estado,
-#                         orientacion, expensas, amenities, cochera, balcon, pileta,
-#                         acepta_mascotas, aire_acondicionado, info_multimedia,
-#                         documentos, videos, fotos, moneda_precio, moneda_expensas,
-#                         fecha_procesamiento
-#                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-#                 ''', (
-#                     id_temporal, titulo, barrio, precio, ambientes, metros,
-#                     prop.get('operacion', '').strip(),
-#                     prop.get('tipo', '').strip(),
-#                     prop.get('descripcion', '').strip(),
-#                     prop.get('direccion', '').strip(),
-#                     prop.get('antiguedad', 0) if prop.get('antiguedad') else 0,
-#                     prop.get('estado', '').strip(),
-#                     prop.get('orientacion', '').strip(),
-#                     expensas,
-#                     prop.get('amenities', '').strip(),
-#                     prop.get('cochera', '').strip(),
-#                     prop.get('balcon', '').strip(),
-#                     prop.get('pileta', '').strip(),
-#                     prop.get('acepta_mascotas', '').strip(),
-#                     prop.get('aire_acondicionado', '').strip(),
-#                     prop.get('info_multimedia', '').strip(),
-#                     prop.get('documentos', '').strip(),
-#                     prop.get('videos', '').strip(),
-#                     prop.get('fotos', '').strip(),
-#                     prop.get('moneda_precio', 'ARS').strip(),
-#                     prop.get('moneda_expensas', 'ARS').strip(),
-#                     prop.get('fecha_procesamiento', '').strip()
-#                 ))
-                
-#             except Exception as e:
-#                 print(f"⚠️ Error procesando propiedad {titulo}: {e}")
-#                 continue
-        
-#         conn.commit()
-#         conn.close()
-        
-#         print(f"✅ {len(propiedades)} propiedades cargadas exitosamente en la base de datos")
-        
-#     except Exception as e:
-#         print(f"❌ Error cargando propiedades: {e}")
-#         import traceback
-#         traceback.print_exc()
+
+def cargar_propiedades_json(filename):
+    try:
+        with open(filename, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"⚠️ Archivo {filename} no encontrado")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"⚠️ Error decodificando JSON en {filename}: {e}")
+        return []
+    except Exception as e:
+        print(f"⚠️ Error al cargar {filename}: {e}")
+        return []
 
 def extraer_barrios(propiedades):
     return sorted(set(p.get("barrio", "").lower() for p in propiedades if p.get("barrio")))
@@ -888,13 +775,17 @@ def status():
 
 @app.get("/")
 def root():
-    return {
-        "status": "Backend activo",
-        "endpoint": "/chat",
-        "método": "POST",
-        "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web', filters: {...} }",
-        "documentación": "/docs"
-    }
+    """Servir la página principal del asistente inmobiliario"""
+    try:
+        return FileResponse("index.html")
+    except FileNotFoundError:
+        return {
+            "status": "Backend activo",
+            "endpoint": "/chat",
+            "método": "POST",
+            "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web', filters: {...} }",
+            "documentación": "/docs"
+        }
 
 @app.get("/logs")
 def get_logs(limit: int = 10, channel: Optional[str] = None):

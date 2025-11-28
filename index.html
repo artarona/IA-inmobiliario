@@ -474,7 +474,6 @@
         <div class="filters-panel">
             <div class="filters-header">
                 <div class="logo-container">
-        
                     <h1>Dante Propiedades</h1>
                 </div>
                 <div class="filters-title">Filtros de Búsqueda</div>
@@ -736,7 +735,7 @@
             typingIndicator.style.display = 'none';
         }
 
-       function resetearChat() {
+        function resetearChat() {
             if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
                 chatBox.innerHTML = '';
                 conversacionActual = [];
@@ -758,9 +757,6 @@
                 }, 300);
             }
         }
-
-        // Hacer las funciones accesibles globalmente
-        window.resetearChat = resetearChat;
 
         function obtenerFiltrosSeleccionados() {
             const operacion = document.getElementById('operacion').value;
@@ -859,10 +855,6 @@
             send();
         }
 
-        // Hacer las funciones accesibles globalmente
-        window.aplicarFiltros = aplicarFiltros;
-
-
         function limpiarFiltros() {
             document.getElementById('operacion').value = '';
             document.getElementById('barrio').value = '';
@@ -873,13 +865,6 @@
             document.getElementById('metrosMin').value = '';
             document.getElementById('metrosMax').value = '';
         }
-
-        // Hacer las funciones accesibles globalmente
-        window.limpiarFiltros = limpiarFiltros;
-
-
-
-
 
         async function send() {
             let msg = input.value.trim();
@@ -1007,34 +992,6 @@
             button.disabled = false;
             input.focus();
         }
-        }
-
-        // Event listeners
-        button.addEventListener('click', send);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                send();
-            }
-        });
-
-        // Auto-focus en el input
-        input.focus();
-
-        // Verificar estado del servidor
-        async function checkServerStatus() {
-            try {
-                const response = await fetch(API_URL.replace('/chat', '/status'));
-                if (response.ok) {
-                    statusText.textContent = 'Conectado';
-                } else {
-                    statusText.textContent = 'Servidor inactivo';
-                }
-            } catch (error) {
-                statusText.textContent = 'Sin conexión';
-            }
-        }
-
-        setInterval(checkServerStatus, 30000);
-        checkServerStatus();
     </script>
 </body>
+</html>
