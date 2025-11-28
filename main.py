@@ -17,6 +17,119 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
+# DEBUG TEMPORAL
+print("🔍 DEBUG - Verificando archivos y BD...")
+print(f"📁 Archivos en directorio: {os.listdir('.')}")
+print(f"📊 properties.json existe: {os.path.exists('properties.json')}")
+print(f"📊 propiedades.db existe: {os.path.exists('propiedades.db')}")
+
+if os.path.exists('properties.json'):
+    with open('properties.json', 'r', encoding='utf-8') as f:
+        props = json.load(f)
+        print(f"📈 Propiedades en JSON: {len(props)}")
+
+def reset_database():
+    """Recrea la base de datos desde cero"""
+    try:
+        db_path = "propiedades.db"
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print("🗑️  Base de datos anterior eliminada")
+        
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        
+        # Crear tabla con esquema correcto
+        cur.execute('''
+            CREATE TABLE properties (
+                id_temporal TEXT PRIMARY KEY,
+                titulo TEXT,
+                barrio TEXT,
+                precio REAL,
+                ambientes INTEGER,
+                metros_cuadrados REAL,
+                operacion TEXT,
+                tipo TEXT,
+                descripcion TEXT,
+                direccion TEXT,
+                antiguedad INTEGER,
+                estado TEXT,
+                orientacion TEXT,
+                expensas REAL,
+                amenities TEXT,
+                cochera TEXT,
+                balcon TEXT,
+                pileta TEXT,
+                acepta_mascotas TEXT,
+                aire_acondicionado TEXT,
+                info_multimedia TEXT,
+                documentos TEXT,
+                videos TEXT,
+                fotos TEXT,
+                moneda_precio TEXT,
+                moneda_expensas TEXT,
+                fecha_procesamiento TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("✅ Base de datos recreada con esquema correcto")
+        
+    except Exception as e:
+        print(f"❌ Error resetando BD: {e}")
+
+# Ejecutar reset al inicio
+reset_database()
+
+
+def verificar_y_reparar_bd():
+    """Verifica y repara la base de datos en cada inicio"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # Verificar si la tabla existe y tiene las columnas correctas
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
+        if not cur.fetchone():
+            print("🚨 Tabla 'properties' no existe - recreando...")
+            initialize_databases()
+            return
+        
+        # Verificar columnas críticas
+        cur.execute("PRAGMA table_info(properties)")
+        columnas = [col[1] for col in cur.fetchall()]
+        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
+        
+        for col in columnas_requeridas:
+            if col not in columnas:
+                print(f"🚨 Columna '{col}' faltante - recreando BD...")
+                initialize_databases()
+                return
+        
+        # Verificar si hay datos
+        cur.execute("SELECT COUNT(*) FROM properties")
+        count = cur.fetchone()[0]
+        if count == 0:
+            print("🔄 BD vacía - cargando propiedades...")
+            cargar_propiedades_a_db()
+        
+        conn.close()
+        print("✅ BD verificada correctamente")
+        
+    except Exception as e:
+        print(f"❌ Error verificando BD: {e}")
+        # Forzar recreación
+        initialize_databases()
+
+# Llamar esta función al inicio, después de definir DB_PATH
+verificar_y_reparar_bd()
+
+
+
+
+
 # Importar configuración
 try:
     from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
@@ -293,7 +406,7 @@ def cargar_propiedades_json(filename):
         return []
 
 def cargar_propiedades_a_db():
-    """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
+    """Carga las propiedades del JSON a la base de datos SQLite"""
     try:
         propiedades = cargar_propiedades_json("properties.json")
         if not propiedades:
@@ -308,15 +421,16 @@ def cargar_propiedades_a_db():
         existing_count = cur.fetchone()[0]
         
         if existing_count > 0:
-            print(f"✅ Base de datos ya contiene {existing_count} propiedades, saltando carga")
+            print(f"✅ Base de datos ya contiene {existing_count} propiedades")
+            conn.close()
             return
         
-        # Solo crear las propiedades si la tabla está vacía
+        # Cargar propiedades si la tabla está vacía
         propiedades_cargadas = 0
         for p in propiedades:
             try:
                 cur.execute('''
-                    INSERT INTO properties (
+                    INSERT OR REPLACE INTO properties (
                         id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
                         operacion, tipo, descripcion, direccion, antiguedad, estado,
                         orientacion, expensas, amenities, cochera, balcon, pileta,
@@ -331,8 +445,8 @@ def cargar_propiedades_a_db():
                     p.get('estado'), p.get('orientacion'), p.get('expensas'), p.get('amenities'),
                     p.get('cochera'), p.get('balcon'), p.get('pileta'), p.get('acepta_mascotas'),
                     p.get('aire_acondicionado'), p.get('info_multimedia'),
-                    json.dumps(p.get('documentos')), json.dumps(p.get('videos')),
-                    json.dumps(p.get('fotos')), p.get('moneda_precio'),
+                    json.dumps(p.get('documentos', [])), json.dumps(p.get('videos', [])),
+                    json.dumps(p.get('fotos', [])), p.get('moneda_precio'),
                     p.get('moneda_expensas'), p.get('fecha_procesamiento')
                 ))
                 propiedades_cargadas += 1
@@ -347,11 +461,10 @@ def cargar_propiedades_a_db():
         
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
-
+        
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
-        # Solo crear tablas si no existen (no eliminar datos existentes)
         print("🔄 Inicializando bases de datos...")
         
         # Base de datos de logs
@@ -373,6 +486,7 @@ def initialize_databases():
         conn.close()
         print("✅ Tabla 'logs' creada/verificada")
         
+        # Base de datos de propiedades
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
@@ -409,23 +523,18 @@ def initialize_databases():
             )
         ''')
         
-        cur.execute("PRAGMA table_info(properties)")
-        schema = cur.fetchall()
-        print("🔍 Esquema de la tabla 'properties':")
-        for col in schema:
-            print(f"   {col[1]} : {col[2]}")
-        
         conn.commit()
         conn.close()
         print("✅ Tabla 'properties' creada/verificada")
 
+        # 🔥 IMPORTANTE: Cargar propiedades después de crear la tabla
         cargar_propiedades_a_db()
         
-        print("✅ Bases de datos inicializadas correctamente con nuevo esquema")
+        print("✅ Bases de datos inicializadas correctamente")
         
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
-
+        
 def get_historial_canal(canal="web", limite=3):
     try:
         conn = sqlite3.connect(LOG_PATH)
