@@ -89,8 +89,27 @@ def cargar_propiedades_json(filename):
         return []
 
 def cargar_propiedades_a_db():
-    """Carga propiedades desde JSON a BD - VERSIÓN RENDER"""
+    """Carga propiedades desde JSON a BD - CON VERIFICACIÓN DE ESQUEMA"""
     try:
+        # Verificar esquema primero
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        cur.execute("PRAGMA table_info(properties)")
+        columnas = [col[1] for col in cur.fetchall()]
+        print(f"🔍 Esquema actual: {columnas}")
+        
+        # Verificar columnas críticas
+        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
+        for col in columnas_requeridas:
+            if col not in columnas:
+                print(f"🚨 COLUMNA FALTANTE: {col} - ABORTANDO CARGA")
+                conn.close()
+                return
+        
+        conn.close()
+        
+        # Proceder con carga normal
         propiedades = cargar_propiedades_json("properties.json")
         if not propiedades:
             print("❌ No hay propiedades para cargar")
@@ -99,96 +118,146 @@ def cargar_propiedades_a_db():
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
-        propiedades_actualizadas = 0
-        propiedades_nuevas = 0
-        
+        propiedades_cargadas = 0
         for p in propiedades:
             try:
-                # Verificar si ya existe
-                cur.execute("SELECT id_temporal FROM properties WHERE id_temporal = ?", 
-                           (p.get('id_temporal'),))
-                existe = cur.fetchone()
+                cur.execute('''
+                    INSERT OR REPLACE INTO properties (
+                        id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
+                        operacion, tipo, descripcion, direccion, antiguedad, estado,
+                        orientacion, expensas, amenities, cochera, balcon, pileta,
+                        acepta_mascotas, aire_acondicionado, info_multimedia,
+                        documentos, videos, fotos, moneda_precio, moneda_expensas,
+                        fecha_procesamiento
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    p.get('id_temporal'), p.get('titulo'), p.get('barrio'), p.get('precio'),
+                    p.get('ambientes'), p.get('metros_cuadrados'), p.get('operacion'),
+                    p.get('tipo'), p.get('descripcion'), p.get('direccion'), p.get('antiguedad'),
+                    p.get('estado'), p.get('orientacion'), p.get('expensas'), p.get('amenities'),
+                    p.get('cochera'), p.get('balcon'), p.get('pileta'), p.get('acepta_mascotas'),
+                    p.get('aire_acondicionado'), p.get('info_multimedia'),
+                    json.dumps(p.get('documentos', [])), json.dumps(p.get('videos', [])),
+                    json.dumps(p.get('fotos', [])), p.get('moneda_precio'),
+                    p.get('moneda_expensas'), p.get('fecha_procesamiento')
+                ))
+                propiedades_cargadas += 1
                 
-                if existe:
-                    # UPDATE si existe
-                    cur.execute('''
-                        UPDATE properties SET 
-                            titulo=?, barrio=?, precio=?, ambientes=?, metros_cuadrados=?,
-                            operacion=?, tipo=?, descripcion=?, direccion=?, antiguedad=?,
-                            estado=?, orientacion=?, expensas=?, amenities=?, cochera=?,
-                            balcon=?, pileta=?, acepta_mascotas=?, aire_acondicionado=?,
-                            info_multimedia=?, documentos=?, videos=?, fotos=?,
-                            moneda_precio=?, moneda_expensas=?, fecha_procesamiento=?
-                        WHERE id_temporal=?
-                    ''', (
-                        p.get('titulo'), p.get('barrio'), p.get('precio'),
-                        p.get('ambientes'), p.get('metros_cuadrados'), p.get('operacion'),
-                        p.get('tipo'), p.get('descripcion'), p.get('direccion'), p.get('antiguedad'),
-                        p.get('estado'), p.get('orientacion'), p.get('expensas'), p.get('amenities'),
-                        p.get('cochera'), p.get('balcon'), p.get('pileta'), p.get('acepta_mascotas'),
-                        p.get('aire_acondicionado'), p.get('info_multimedia'),
-                        json.dumps(p.get('documentos', [])), json.dumps(p.get('videos', [])),
-                        json.dumps(p.get('fotos', [])), p.get('moneda_precio'),
-                        p.get('moneda_expensas'), p.get('fecha_procesamiento'),
-                        p.get('id_temporal')  # WHERE condition
-                    ))
-                    propiedades_actualizadas += 1
-                else:
-                    # INSERT si es nuevo
-                    cur.execute('''
-                        INSERT INTO properties (
-                            id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
-                            operacion, tipo, descripcion, direccion, antiguedad, estado,
-                            orientacion, expensas, amenities, cochera, balcon, pileta,
-                            acepta_mascotas, aire_acondicionado, info_multimedia,
-                            documentos, videos, fotos, moneda_precio, moneda_expensas,
-                            fecha_procesamiento
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        p.get('id_temporal'), p.get('titulo'), p.get('barrio'), p.get('precio'),
-                        p.get('ambientes'), p.get('metros_cuadrados'), p.get('operacion'),
-                        p.get('tipo'), p.get('descripcion'), p.get('direccion'), p.get('antiguedad'),
-                        p.get('estado'), p.get('orientacion'), p.get('expensas'), p.get('amenities'),
-                        p.get('cochera'), p.get('balcon'), p.get('pileta'), p.get('acepta_mascotas'),
-                        p.get('aire_acondicionado'), p.get('info_multimedia'),
-                        json.dumps(p.get('documentos', [])), json.dumps(p.get('videos', [])),
-                        json.dumps(p.get('fotos', [])), p.get('moneda_precio'),
-                        p.get('moneda_expensas'), p.get('fecha_procesamiento')
-                    ))
-                    propiedades_nuevas += 1
-                    
             except Exception as e:
-                print(f"⚠️ Error procesando propiedad {p.get('titulo', 'N/A')}: {e}")
+                print(f"⚠️ Error cargando propiedad {p.get('titulo', 'N/A')}: {e}")
                 continue
         
         conn.commit()
-        
-        # Estadísticas
-        cur.execute("SELECT COUNT(*) FROM properties")
-        total_en_bd = cur.fetchone()[0]
-        
         conn.close()
-        
-        print(f"📊 Carga completada:")
-        print(f"   • JSON: {len(propiedades)} propiedades")
-        print(f"   • BD: {total_en_bd} propiedades totales")
-        print(f"   • Nuevas: {propiedades_nuevas}")
-        print(f"   • Actualizadas: {propiedades_actualizadas}")
+        print(f"✅ {propiedades_cargadas}/{len(propiedades)} propiedades cargadas")
         
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
-        
-def initialize_databases():
-    """Inicializa las bases de datos - VERSIÓN PARA RENDER"""
+        import traceback
+        traceback.print_exc()
+              
+
+def diagnostico_completo():
+    """Diagnóstico completo del sistema"""
+    print("\n" + "="*50)
+    print("🔍 DIAGNÓSTICO COMPLETO DEL SISTEMA")
+    print("="*50)
+    
+    # 1. Verificar archivos
+    print("📁 ARCHIVOS:")
+    print(f"   • properties.json: {os.path.exists('properties.json')}")
+    print(f"   • propiedades.db: {os.path.exists(DB_PATH)}")
+    print(f"   • config.py: {os.path.exists('config.py')}")
+    
+    if os.path.exists('properties.json'):
+        with open('properties.json', 'r', encoding='utf-8') as f:
+            props = json.load(f)
+            print(f"   • Propiedades en JSON: {len(props)}")
+    
+    # 2. Verificar base de datos
+    print("\n🗃️ BASE DE DATOS:")
     try:
-        print("🔄 INICIALIZANDO BD PARA RENDER...")
-        
-        # 1. Siempre crear la tabla (si existe, no pasa nada)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
+        # Verificar tabla
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
+        tabla_existe = cur.fetchone()
+        print(f"   • Tabla 'properties' existe: {bool(tabla_existe)}")
+        
+        if tabla_existe:
+            # Verificar esquema
+            cur.execute("PRAGMA table_info(properties)")
+            columnas = [col[1] for col in cur.fetchall()]
+            print(f"   • Columnas: {len(columnas)}")
+            print(f"   • Esquema: {columnas}")
+            
+            # Verificar datos
+            cur.execute("SELECT COUNT(*) FROM properties")
+            count = cur.fetchone()[0]
+            print(f"   • Propiedades en BD: {count}")
+            
+            # Test de columnas críticas
+            columnas_criticas = ['barrio', 'precio', 'operacion', 'tipo']
+            for col in columnas_criticas:
+                if col in columnas:
+                    print(f"   ✅ {col}: OK")
+                else:
+                    print(f"   ❌ {col}: FALTANTE")
+        
+        conn.close()
+        
+    except Exception as e:
+        print(f"   ❌ Error accediendo a BD: {e}")
+    
+    # 3. Verificar API Keys
+    print(f"\n🔑 API KEYS:")
+    print(f"   • Claves configuradas: {len(API_KEYS)}")
+    for i, key in enumerate(API_KEYS):
+        status = "✅ Válida" if key and len(key) > 10 else "❌ Inválida"
+        print(f"   • Key {i+1}: {status} ({len(key) if key else 0} chars)")
+    
+    print("="*50 + "\n")
+
+# Llamar diagnóstico al inicio
+# ✅ CONFIGURACIONES PRIMERO
+DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
+LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
+
+
+# ✅ Verificación final
+# ✅ EJECUTAR DIAGNÓSTICO Y INICIALIZACIÓN INMEDIATA
+print("🚀 INICIANDO APLICACIÓN EN RENDER...")
+diagnostico_completo()
+initialize_databases()  # 🔥 Esto ahora FORZARÁ la recreación
+
+# ✅ Verificación final
+try:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT barrio, precio FROM properties LIMIT 1")
+    test_result = cur.fetchone()
+    print(f"🎉 VERIFICACIÓN FINAL: {test_result}")
+    conn.close()
+except Exception as e:
+    print(f"🚨 VERIFICACIÓN FALLÓ: {e}")
+
+
+def initialize_databases():
+    """Inicializa las bases de datos - VERSIÓN AGGRESIVA PARA RENDER"""
+    try:
+        print("🔄 INICIALIZANDO BD CON RECREACIÓN FORZADA...")
+        
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # 🔥 PASO 1: ELIMINAR TABLA SI EXISTE (para forzar recreación)
+        cur.execute("DROP TABLE IF EXISTS properties")
+        print("🗑️  Tabla properties eliminada (forzando recreación)")
+        
+        # 🔥 PASO 2: CREAR TABLA CON ESQUEMA EXACTO
         cur.execute('''
-            CREATE TABLE IF NOT EXISTS properties (
+            CREATE TABLE properties (
                 id_temporal TEXT PRIMARY KEY,
                 titulo TEXT,
                 barrio TEXT,
@@ -221,35 +290,18 @@ def initialize_databases():
         ''')
         conn.commit()
         conn.close()
-        print("✅ Tabla 'properties' asegurada")
+        print("✅ Tabla 'properties' RECREADA con esquema completo")
         
-        # 2. Tabla de logs
-        conn = sqlite3.connect(LOG_PATH)
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                channel TEXT,
-                user_message TEXT,
-                bot_response TEXT,
-                response_time REAL,
-                search_performed BOOLEAN DEFAULT 0,
-                results_count INTEGER DEFAULT 0
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        print("✅ Tabla 'logs' asegurada")
-        
-        # 3. CARGAR DATOS SIEMPRE (usar INSERT OR REPLACE)
+        # 🔥 PASO 3: CARGAR DATOS INMEDIATAMENTE
         cargar_propiedades_a_db()
         
-        print("✅ Bases de datos inicializadas para Render")
+        print("✅ Base de datos inicializada EXITOSAMENTE")
         
     except Exception as e:
-        print(f"❌ Error inicializando BD: {e}")
-        
+        print(f"❌ Error crítico inicializando BD: {e}")
+        import traceback
+        traceback.print_exc()
+                
 def verificar_y_reparar_bd():
     """Verificación simple para Render - siempre inicializar"""
     print("🔍 INICIANDO VERIFICACIÓN PARA RENDER...")
