@@ -17,119 +17,6 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
-# DEBUG TEMPORAL
-print("🔍 DEBUG - Verificando archivos y BD...")
-print(f"📁 Archivos en directorio: {os.listdir('.')}")
-print(f"📊 properties.json existe: {os.path.exists('properties.json')}")
-print(f"📊 propiedades.db existe: {os.path.exists('propiedades.db')}")
-
-if os.path.exists('properties.json'):
-    with open('properties.json', 'r', encoding='utf-8') as f:
-        props = json.load(f)
-        print(f"📈 Propiedades en JSON: {len(props)}")
-
-def reset_database():
-    """Recrea la base de datos desde cero"""
-    try:
-        db_path = "propiedades.db"
-        if os.path.exists(db_path):
-            os.remove(db_path)
-            print("🗑️  Base de datos anterior eliminada")
-        
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        
-        # Crear tabla con esquema correcto
-        cur.execute('''
-            CREATE TABLE properties (
-                id_temporal TEXT PRIMARY KEY,
-                titulo TEXT,
-                barrio TEXT,
-                precio REAL,
-                ambientes INTEGER,
-                metros_cuadrados REAL,
-                operacion TEXT,
-                tipo TEXT,
-                descripcion TEXT,
-                direccion TEXT,
-                antiguedad INTEGER,
-                estado TEXT,
-                orientacion TEXT,
-                expensas REAL,
-                amenities TEXT,
-                cochera TEXT,
-                balcon TEXT,
-                pileta TEXT,
-                acepta_mascotas TEXT,
-                aire_acondicionado TEXT,
-                info_multimedia TEXT,
-                documentos TEXT,
-                videos TEXT,
-                fotos TEXT,
-                moneda_precio TEXT,
-                moneda_expensas TEXT,
-                fecha_procesamiento TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        print("✅ Base de datos recreada con esquema correcto")
-        
-    except Exception as e:
-        print(f"❌ Error resetando BD: {e}")
-
-# Ejecutar reset al inicio
-reset_database()
-
-
-def verificar_y_reparar_bd():
-    """Verifica y repara la base de datos en cada inicio"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        
-        # Verificar si la tabla existe y tiene las columnas correctas
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
-        if not cur.fetchone():
-            print("🚨 Tabla 'properties' no existe - recreando...")
-            initialize_databases()
-            return
-        
-        # Verificar columnas críticas
-        cur.execute("PRAGMA table_info(properties)")
-        columnas = [col[1] for col in cur.fetchall()]
-        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
-        
-        for col in columnas_requeridas:
-            if col not in columnas:
-                print(f"🚨 Columna '{col}' faltante - recreando BD...")
-                initialize_databases()
-                return
-        
-        # Verificar si hay datos
-        cur.execute("SELECT COUNT(*) FROM properties")
-        count = cur.fetchone()[0]
-        if count == 0:
-            print("🔄 BD vacía - cargando propiedades...")
-            cargar_propiedades_a_db()
-        
-        conn.close()
-        print("✅ BD verificada correctamente")
-        
-    except Exception as e:
-        print(f"❌ Error verificando BD: {e}")
-        # Forzar recreación
-        initialize_databases()
-
-# Llamar esta función al inicio, después de definir DB_PATH
-verificar_y_reparar_bd()
-
-
-
-
-
 # Importar configuración
 try:
     from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
@@ -138,6 +25,11 @@ except ImportError:
     API_KEYS = os.environ.get("GEMINI_API_KEYS", "").split(",") if os.environ.get("GEMINI_API_KEYS") else []
     ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
     MODEL = os.environ.get("WORKING_MODEL", "gemini-pro")
+
+# ✅ CONFIGURACIONES PRIMERO
+DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
+LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
+CACHE_DURATION = 300  # 5 minutos para cache
 
 # Variables globales para filtros dinámicos
 filtros_dinamicos = {
@@ -170,227 +62,18 @@ print(f"🔍 API Keys cargadas: {len(API_KEYS)}")
 print(f"🔍 Endpoint: {ENDPOINT}")
 print(f"🔍 Model: {MODEL}")
 
-# Mostrar variables de entorno relevantes
-print("🔍 VARIABLES DE ENTORNO RELACIONADAS:")
-for key, value in os.environ.items():
-    if any(term in key.upper() for term in ["GEMINI", "API", "KEY"]):
-        masked_value = value[:10] + "..." if len(value) > 10 else value
-        print(f"   {key}: {masked_value}")
+# DEBUG TEMPORAL
+print("🔍 DEBUG - Verificando archivos y BD...")
+print(f"📁 Archivos en directorio: {os.listdir('.')}")
+print(f"📊 properties.json existe: {os.path.exists('properties.json')}")
+print(f"📊 propiedades.db existe: {os.path.exists('propiedades.db')}")
 
-def call_gemini_with_rotation(prompt: str) -> str:
-    """Función para llamar a Gemini API con rotación de claves"""
-    print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
-    print(f"🔧 Modelo: {MODEL}")
-    print(f"🔑 Claves disponibles: {len(API_KEYS)}")
-    
-    if not API_KEYS or len([k for k in API_KEYS if k.strip()]) == 0:
-        print("⚠️ No hay API keys configuradas, usando modo básico")
-        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!**"
-    
-    for i, key in enumerate(API_KEYS):
-        if not key.strip():
-            continue
-            
-        print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
-        
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=key.strip())
-            model = genai.GenerativeModel(MODEL)
-            
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
-                    top_p=0.8,
-                    top_k=40,
-                )
-            )
-            
-            if not response.parts:
-                raise Exception("Respuesta vacía de Gemini")
-            
-            answer = response.text.strip()
-            print(f"✅ Éxito con clave {i+1}")
-            return answer
+if os.path.exists('properties.json'):
+    with open('properties.json', 'r', encoding='utf-8') as f:
+        props = json.load(f)
+        print(f"📈 Propiedades en JSON: {len(props)}")
 
-        except Exception as e:
-            error_type = type(e).__name__
-            if "ResourceExhausted" in error_type or "429" in str(e):
-                print(f"❌ Clave {i+1} agotada")
-            elif "PermissionDenied" in error_type or "401" in str(e):
-                print(f"❌ Clave {i+1} no autorizada") 
-            else:
-                print(f"❌ Clave {i+1} error: {error_type}")
-            continue
-    
-    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **Para respuestas inteligentes completas** se requiere configurar las API keys de Gemini AI.\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **La búsqueda funciona perfectamente**, solo falta la IA conversacional para un servicio completo."
-
-def diagnosticar_problemas():
-    """Función de diagnóstico"""
-    print("🔍 INICIANDO DIAGNÓSTICO...")
-    
-    # 1. Verificar archivos
-    print("1. 📁 Verificando archivos...")
-    archivos = os.listdir('.')
-    print(f"   Archivos en directorio actual: {archivos}")
-    
-    # 2. Verificar properties.json
-    if os.path.exists("properties.json"):
-        try:
-            with open("properties.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-                print(f"   ✅ properties.json: {len(data)} propiedades encontradas")
-        except Exception as e:
-            print(f"   ❌ Error leyendo properties.json: {e}")
-    else:
-        print("   ❌ properties.json NO EXISTE")
-    
-    # 3. Verificar config
-    try:
-        print(f"   ✅ Config: {len(API_KEYS)} API keys cargadas")
-        print(f"   ✅ Endpoint: {ENDPOINT}")
-    except Exception as e:
-        print(f"   ❌ Error cargando config: {e}")
-    
-    # 4. Verificar gemini client
-    try:
-        test_response = call_gemini_with_rotation("Test")
-        print("   ✅ Gemini client funcional")
-        print(f"   ✅ Test response: {test_response[:50]}...")
-    except Exception as e:
-        print(f"   ❌ Error con Gemini client: {e}")
-
-# Ejecutar diagnóstico inmediatamente
-diagnosticar_problemas()
-
-# ✅ MODELOS DE DATOS PYDANTIC
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=1000, description="Mensaje del usuario")
-    channel: str = Field(default="web", description="Canal de comunicación (web, whatsapp, etc.)")
-    filters: Optional[Dict[str, Any]] = Field(default=None, description="Filtros aplicados desde el frontend")
-    contexto_anterior: Optional[Dict[str, Any]] = Field(default=None, description="Contexto de la conversación anterior")
-    es_seguimiento: Optional[bool] = Field(default=False, description="Indica si es un mensaje de seguimiento")
-
-class ChatResponse(BaseModel):
-    response: str
-    results_count: Optional[int] = None
-    search_performed: bool
-    propiedades: Optional[List[dict]] = None
-
-class PropertyResponse(BaseModel):
-    id_temporal: str
-    titulo: str
-    barrio: str
-    precio: float
-    ambientes: int
-    metros_cuadrados: float
-    descripcion: str
-    operacion: str
-    tipo: str
-    direccion: Optional[str] = None
-    antiguedad: Optional[int] = None
-    estado: Optional[str] = None
-    orientacion: Optional[str] = None
-    expensas: Optional[float] = None
-    amenities: Optional[str] = None
-    cochera: Optional[str] = None
-    balcon: Optional[str] = None
-    pileta: Optional[str] = None
-    acepta_mascotas: Optional[str] = None
-    aire_acondicionado: Optional[str] = None
-    info_multimedia: Optional[str] = None
-    documentos: Optional[List[str]] = None
-    videos: Optional[List[str]] = None
-    fotos: Optional[List[str]] = None
-    moneda_precio: Optional[str] = None
-    moneda_expensas: Optional[str] = None
-    fecha_procesamiento: Optional[str] = None
-
-# ✅ MÉTRICAS Y ESTADÍSTICAS
-class Metrics:
-    def __init__(self):
-        self.requests_count = 0
-        self.successful_requests = 0
-        self.failed_requests = 0
-        self.gemini_calls = 0
-        self.search_queries = 0
-        self.start_time = time.time()
-    
-    def increment_requests(self):
-        self.requests_count += 1
-    
-    def increment_success(self):
-        self.successful_requests += 1
-    
-    def increment_failures(self):
-        self.failed_requests += 1
-    
-    def increment_gemini_calls(self):
-        self.gemini_calls += 1
-    
-    def increment_searches(self):
-        self.search_queries += 1
-    
-    def get_uptime(self):
-        return time.time() - self.start_time
-
-# ✅ INICIALIZACIÓN
-metrics = Metrics()
-
-@asynccontextmanager
-async def lifespan(app):
-    print("🔄 Iniciando ciclo de vida...")
-    # Inicialización de bases de datos y recursos
-    initialize_databases()
-    yield
-    print("✅ Finalizando ciclo de vida...")
-
-# ✅ APP PRINCIPAL
-app = FastAPI(
-    lifespan=lifespan,
-    title="Dante Propiedades API",
-    description="Backend para procesamiento de consultas y filtros de propiedades",
-    version="1.0.0"
-)
-
-# ✅ CONFIGURACIONES
-DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
-LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
-CACHE_DURATION = 300  # 5 minutos para cache
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ✅ CACHE PARA CONSULTAS FRECUENTES
-query_cache = {}
-
-def get_cache_key(filters: Dict[str, Any]) -> str:
-    """Genera una clave única para el cache basada en los filtros"""
-    return json.dumps(filters, sort_keys=True)
-
-def cache_query_results(filters: Dict[str, Any], results: List[Dict]):
-    """Almacena resultados en cache"""
-    cache_key = get_cache_key(filters)
-    query_cache[cache_key] = {
-        'results': results,
-        'timestamp': time.time()
-    }
-
-def get_cached_results(filters: Dict[str, Any]) -> Optional[List[Dict]]:
-    """Obtiene resultados del cache si están disponibles y no han expirado"""
-    cache_key = get_cache_key(filters)
-    cached = query_cache.get(cache_key)
-    
-    if cached and (time.time() - cached['timestamp']) < CACHE_DURATION:
-        return cached['results']
-    return None
-
-# ✅ FUNCIONES MEJORADAS
+# ✅ FUNCIONES DE BASE DE DATOS
 def cargar_propiedades_json(filename):
     try:
         with open(filename, "r", encoding="utf-8-sig") as f:
@@ -461,7 +144,7 @@ def cargar_propiedades_a_db():
         
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
-        
+
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
@@ -527,14 +210,243 @@ def initialize_databases():
         conn.close()
         print("✅ Tabla 'properties' creada/verificada")
 
-        # 🔥 IMPORTANTE: Cargar propiedades después de crear la tabla
+        # Cargar propiedades después de crear la tabla
         cargar_propiedades_a_db()
         
         print("✅ Bases de datos inicializadas correctamente")
         
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
+
+def verificar_y_reparar_bd():
+    """Verifica y repara la base de datos en cada inicio"""
+    try:
+        print("🔍 Verificando estado de la base de datos...")
         
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # Verificar si la tabla existe
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
+        if not cur.fetchone():
+            print("🚨 Tabla 'properties' no existe - recreando...")
+            conn.close()
+            initialize_databases()
+            return
+        
+        # Verificar columnas críticas
+        cur.execute("PRAGMA table_info(properties)")
+        columnas = [col[1] for col in cur.fetchall()]
+        print(f"📋 Columnas en BD: {columnas}")
+        
+        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
+        
+        for col in columnas_requeridas:
+            if col not in columnas:
+                print(f"🚨 Columna '{col}' faltante - recreando BD...")
+                conn.close()
+                initialize_databases()
+                return
+        
+        # Verificar si hay datos
+        cur.execute("SELECT COUNT(*) FROM properties")
+        count = cur.fetchone()[0]
+        print(f"📊 Propiedades en BD: {count}")
+        
+        if count == 0:
+            print("🔄 BD vacía - cargando propiedades...")
+            conn.close()
+            cargar_propiedades_a_db()
+            return
+        
+        conn.close()
+        print("✅ BD verificada correctamente")
+        
+    except Exception as e:
+        print(f"❌ Error verificando BD: {e}")
+        # Forzar recreación
+        initialize_databases()
+
+# ✅ EJECUTAR VERIFICACIÓN AL INICIO
+verificar_y_reparar_bd()
+
+# Resto del código continúa igual desde aquí...
+# [Mantener todo el resto del código igual: clases, métricas, endpoints, etc.]
+
+def call_gemini_with_rotation(prompt: str) -> str:
+    """Función para llamar a Gemini API con rotación de claves"""
+    print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
+    print(f"🔧 Modelo: {MODEL}")
+    print(f"🔑 Claves disponibles: {len(API_KEYS)}")
+    
+    if not API_KEYS or len([k for k in API_KEYS if k.strip()]) == 0:
+        print("⚠️ No hay API keys configuradas, usando modo básico")
+        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!**"
+    
+    for i, key in enumerate(API_KEYS):
+        if not key.strip():
+            continue
+            
+        print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
+        
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=key.strip())
+            model = genai.GenerativeModel(MODEL)
+            
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=40,
+                )
+            )
+            
+            if not response.parts:
+                raise Exception("Respuesta vacía de Gemini")
+            
+            answer = response.text.strip()
+            print(f"✅ Éxito con clave {i+1}")
+            return answer
+
+        except Exception as e:
+            error_type = type(e).__name__
+            if "ResourceExhausted" in error_type or "429" in str(e):
+                print(f"❌ Clave {i+1} agotada")
+            elif "PermissionDenied" in error_type or "401" in str(e):
+                print(f"❌ Clave {i+1} no autorizada") 
+            else:
+                print(f"❌ Clave {i+1} error: {error_type}")
+            continue
+    
+    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **Para respuestas inteligentes completas** se requiere configurar las API keys de Gemini AI.\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **La búsqueda funciona perfectamente**, solo falta la IA conversacional para un servicio completo."
+
+# ✅ MÉTRICAS Y ESTADÍSTICAS
+class Metrics:
+    def __init__(self):
+        self.requests_count = 0
+        self.successful_requests = 0
+        self.failed_requests = 0
+        self.gemini_calls = 0
+        self.search_queries = 0
+        self.start_time = time.time()
+    
+    def increment_requests(self):
+        self.requests_count += 1
+    
+    def increment_success(self):
+        self.successful_requests += 1
+    
+    def increment_failures(self):
+        self.failed_requests += 1
+    
+    def increment_gemini_calls(self):
+        self.gemini_calls += 1
+    
+    def increment_searches(self):
+        self.search_queries += 1
+    
+    def get_uptime(self):
+        return time.time() - self.start_time
+
+# ✅ INICIALIZACIÓN
+metrics = Metrics()
+
+@asynccontextmanager
+async def lifespan(app):
+    print("🔄 Iniciando ciclo de vida...")
+    # Inicialización de bases de datos y recursos
+    initialize_databases()
+    yield
+    print("✅ Finalizando ciclo de vida...")
+
+# ✅ APP PRINCIPAL
+app = FastAPI(
+    lifespan=lifespan,
+    title="Dante Propiedades API",
+    description="Backend para procesamiento de consultas y filtros de propiedades",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ✅ CACHE PARA CONSULTAS FRECUENTES
+query_cache = {}
+
+def get_cache_key(filters: Dict[str, Any]) -> str:
+    """Genera una clave única para el cache basada en los filtros"""
+    return json.dumps(filters, sort_keys=True)
+
+def cache_query_results(filters: Dict[str, Any], results: List[Dict]):
+    """Almacena resultados en cache"""
+    cache_key = get_cache_key(filters)
+    query_cache[cache_key] = {
+        'results': results,
+        'timestamp': time.time()
+    }
+
+def get_cached_results(filters: Dict[str, Any]) -> Optional[List[Dict]]:
+    """Obtiene resultados del cache si están disponibles y no han expirado"""
+    cache_key = get_cache_key(filters)
+    cached = query_cache.get(cache_key)
+    
+    if cached and (time.time() - cached['timestamp']) < CACHE_DURATION:
+        return cached['results']
+    return None
+
+# ... [Mantener todo el resto del código igual: get_historial_canal, query_properties, etc.]
+
+# ✅ MODELOS DE DATOS PYDANTIC
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=1000, description="Mensaje del usuario")
+    channel: str = Field(default="web", description="Canal de comunicación (web, whatsapp, etc.)")
+    filters: Optional[Dict[str, Any]] = Field(default=None, description="Filtros aplicados desde el frontend")
+    contexto_anterior: Optional[Dict[str, Any]] = Field(default=None, description="Contexto de la conversación anterior")
+    es_seguimiento: Optional[bool] = Field(default=False, description="Indica si es un mensaje de seguimiento")
+
+class ChatResponse(BaseModel):
+    response: str
+    results_count: Optional[int] = None
+    search_performed: bool
+    propiedades: Optional[List[dict]] = None
+
+class PropertyResponse(BaseModel):
+    id_temporal: str
+    titulo: str
+    barrio: str
+    precio: float
+    ambientes: int
+    metros_cuadrados: float
+    descripcion: str
+    operacion: str
+    tipo: str
+    direccion: Optional[str] = None
+    antiguedad: Optional[int] = None
+    estado: Optional[str] = None
+    orientacion: Optional[str] = None
+    expensas: Optional[float] = None
+    amenities: Optional[str] = None
+    cochera: Optional[str] = None
+    balcon: Optional[str] = None
+    pileta: Optional[str] = None
+    acepta_mascotas: Optional[str] = None
+    aire_acondicionado: Optional[str] = None
+    info_multimedia: Optional[str] = None
+    documentos: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
+    fotos: Optional[List[str]] = None
+    moneda_precio: Optional[str] = None
+    moneda_expensas: Optional[str] = None
+    fecha_procesamiento: Optional[str] = None
+
+# ... [Mantener todas las demás funciones y endpoints exactamente igual]
+
 def get_historial_canal(canal="web", limite=3):
     try:
         conn = sqlite3.connect(LOG_PATH)
@@ -1352,9 +1264,6 @@ if __name__ == "__main__":
     print("🚀 INICIANDO EN MODO PRODUCCIÓN/RENDER")
     print(f"🔍 Directorio: {os.getcwd()}")
     print(f"🔍 Archivos: {os.listdir('.')}")
-    
-    # Diagnóstico completo
-    diagnosticar_problemas()
     
     port = int(os.environ.get("PORT", 8000))
     print(f"🎯 Servidor iniciando en puerto: {port}")
