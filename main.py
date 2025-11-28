@@ -89,27 +89,8 @@ def cargar_propiedades_json(filename):
         return []
 
 def cargar_propiedades_a_db():
-    """Carga propiedades desde JSON a BD - CON VERIFICACIÓN DE ESQUEMA"""
+    """Carga las propiedades del JSON a la base de datos SQLite"""
     try:
-        # Verificar esquema primero
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute("PRAGMA table_info(properties)")
-        columnas = [col[1] for col in cur.fetchall()]
-        print(f"🔍 Esquema actual: {columnas}")
-        
-        # Verificar columnas críticas
-        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
-        for col in columnas_requeridas:
-            if col not in columnas:
-                print(f"🚨 COLUMNA FALTANTE: {col} - ABORTANDO CARGA")
-                conn.close()
-                return
-        
-        conn.close()
-        
-        # Proceder con carga normal
         propiedades = cargar_propiedades_json("properties.json")
         if not propiedades:
             print("❌ No hay propiedades para cargar")
@@ -149,115 +130,41 @@ def cargar_propiedades_a_db():
         
         conn.commit()
         conn.close()
-        print(f"✅ {propiedades_cargadas}/{len(propiedades)} propiedades cargadas")
+        print(f"✅ {propiedades_cargadas}/{len(propiedades)} propiedades cargadas exitosamente")
         
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
-        import traceback
-        traceback.print_exc()
-              
-
-def diagnostico_completo():
-    """Diagnóstico completo del sistema"""
-    print("\n" + "="*50)
-    print("🔍 DIAGNÓSTICO COMPLETO DEL SISTEMA")
-    print("="*50)
-    
-    # 1. Verificar archivos
-    print("📁 ARCHIVOS:")
-    print(f"   • properties.json: {os.path.exists('properties.json')}")
-    print(f"   • propiedades.db: {os.path.exists(DB_PATH)}")
-    print(f"   • config.py: {os.path.exists('config.py')}")
-    
-    if os.path.exists('properties.json'):
-        with open('properties.json', 'r', encoding='utf-8') as f:
-            props = json.load(f)
-            print(f"   • Propiedades en JSON: {len(props)}")
-    
-    # 2. Verificar base de datos
-    print("\n🗃️ BASE DE DATOS:")
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        
-        # Verificar tabla
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
-        tabla_existe = cur.fetchone()
-        print(f"   • Tabla 'properties' existe: {bool(tabla_existe)}")
-        
-        if tabla_existe:
-            # Verificar esquema
-            cur.execute("PRAGMA table_info(properties)")
-            columnas = [col[1] for col in cur.fetchall()]
-            print(f"   • Columnas: {len(columnas)}")
-            print(f"   • Esquema: {columnas}")
-            
-            # Verificar datos
-            cur.execute("SELECT COUNT(*) FROM properties")
-            count = cur.fetchone()[0]
-            print(f"   • Propiedades en BD: {count}")
-            
-            # Test de columnas críticas
-            columnas_criticas = ['barrio', 'precio', 'operacion', 'tipo']
-            for col in columnas_criticas:
-                if col in columnas:
-                    print(f"   ✅ {col}: OK")
-                else:
-                    print(f"   ❌ {col}: FALTANTE")
-        
-        conn.close()
-        
-    except Exception as e:
-        print(f"   ❌ Error accediendo a BD: {e}")
-    
-    # 3. Verificar API Keys
-    print(f"\n🔑 API KEYS:")
-    print(f"   • Claves configuradas: {len(API_KEYS)}")
-    for i, key in enumerate(API_KEYS):
-        status = "✅ Válida" if key and len(key) > 10 else "❌ Inválida"
-        print(f"   • Key {i+1}: {status} ({len(key) if key else 0} chars)")
-    
-    print("="*50 + "\n")
-
-# Llamar diagnóstico al inicio
-# ✅ CONFIGURACIONES PRIMERO
-DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
-LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
-
-
-# ✅ Verificación final
-# ✅ EJECUTAR DIAGNÓSTICO Y INICIALIZACIÓN INMEDIATA
-print("🚀 INICIANDO APLICACIÓN EN RENDER...")
-diagnostico_completo()
-initialize_databases()  # 🔥 Esto ahora FORZARÁ la recreación
-
-# ✅ Verificación final
-try:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT barrio, precio FROM properties LIMIT 1")
-    test_result = cur.fetchone()
-    print(f"🎉 VERIFICACIÓN FINAL: {test_result}")
-    conn.close()
-except Exception as e:
-    print(f"🚨 VERIFICACIÓN FALLÓ: {e}")
-
 
 def initialize_databases():
-    """Inicializa las bases de datos - VERSIÓN AGGRESIVA PARA RENDER"""
+    """Inicializa las bases de datos si no existen"""
     try:
-        print("🔄 INICIALIZANDO BD CON RECREACIÓN FORZADA...")
+        print("🔄 Inicializando bases de datos...")
         
+        # Base de datos de logs
+        conn = sqlite3.connect(LOG_PATH)
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT,
+                channel TEXT,
+                user_message TEXT,
+                bot_response TEXT,
+                response_time REAL,
+                search_performed BOOLEAN DEFAULT 0,
+                results_count INTEGER DEFAULT 0
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        print("✅ Tabla 'logs' creada/verificada")
+        
+        # Base de datos de propiedades
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
-        # 🔥 PASO 1: ELIMINAR TABLA SI EXISTE (para forzar recreación)
-        cur.execute("DROP TABLE IF EXISTS properties")
-        print("🗑️  Tabla properties eliminada (forzando recreación)")
-        
-        # 🔥 PASO 2: CREAR TABLA CON ESQUEMA EXACTO
         cur.execute('''
-            CREATE TABLE properties (
+            CREATE TABLE IF NOT EXISTS properties (
                 id_temporal TEXT PRIMARY KEY,
                 titulo TEXT,
                 barrio TEXT,
@@ -288,66 +195,70 @@ def initialize_databases():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
         conn.commit()
         conn.close()
-        print("✅ Tabla 'properties' RECREADA con esquema completo")
-        
-        # 🔥 PASO 3: CARGAR DATOS INMEDIATAMENTE
+        print("✅ Tabla 'properties' creada/verificada")
+
+        # Cargar propiedades después de crear la tabla
         cargar_propiedades_a_db()
         
-        print("✅ Base de datos inicializada EXITOSAMENTE")
+        print("✅ Bases de datos inicializadas correctamente")
         
     except Exception as e:
-        print(f"❌ Error crítico inicializando BD: {e}")
-        import traceback
-        traceback.print_exc()
-                
+        print(f"❌ Error inicializando bases de datos: {e}")
+
 def verificar_y_reparar_bd():
-    """Verificación simple para Render - siempre inicializar"""
-    print("🔍 INICIANDO VERIFICACIÓN PARA RENDER...")
-    
+    """Verifica y repara la base de datos en cada inicio"""
     try:
-        # Verificar archivos
-        print(f"📁 properties.json existe: {os.path.exists('properties.json')}")
-        print(f"📁 propiedades.db existe: {os.path.exists(DB_PATH)}")
+        print("🔍 Verificando estado de la base de datos...")
         
-        if os.path.exists('properties.json'):
-            with open('properties.json', 'r', encoding='utf-8') as f:
-                props = json.load(f)
-                print(f"📈 Propiedades en JSON: {len(props)}")
-        
-        # Siempre inicializar (en Render la BD se recrea en cada deploy)
-        initialize_databases()
-        
-        # Verificación rápida
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
+        # Verificar si la tabla existe
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
+        if not cur.fetchone():
+            print("🚨 Tabla 'properties' no existe - recreando...")
+            conn.close()
+            initialize_databases()
+            return
+        
+        # Verificar columnas críticas
+        cur.execute("PRAGMA table_info(properties)")
+        columnas = [col[1] for col in cur.fetchall()]
+        print(f"📋 Columnas en BD: {columnas}")
+        
+        columnas_requeridas = ['barrio', 'precio', 'operacion', 'tipo']
+        
+        for col in columnas_requeridas:
+            if col not in columnas:
+                print(f"🚨 Columna '{col}' faltante - recreando BD...")
+                conn.close()
+                initialize_databases()
+                return
+        
+        # Verificar si hay datos
         cur.execute("SELECT COUNT(*) FROM properties")
         count = cur.fetchone()[0]
-        print(f"✅ Propiedades en BD después de carga: {count}")
+        print(f"📊 Propiedades en BD: {count}")
         
-        # Test de columnas
-        try:
-            cur.execute("SELECT barrio, precio FROM properties LIMIT 1")
-            test = cur.fetchone()
-            print(f"🧪 Test columnas: OK - {test}")
-        except Exception as e:
-            print(f"🚨 Error en test de columnas: {e}")
-            
+        if count == 0:
+            print("🔄 BD vacía - cargando propiedades...")
+            conn.close()
+            cargar_propiedades_a_db()
+            return
+        
         conn.close()
+        print("✅ BD verificada correctamente")
         
     except Exception as e:
-        print(f"❌ Error en verificación: {e}")
-        
-        
+        print(f"❌ Error verificando BD: {e}")
+        # Forzar recreación
         initialize_databases()
 
 # ✅ EJECUTAR VERIFICACIÓN AL INICIO
 verificar_y_reparar_bd()
-
-# Resto del código continúa igual desde aquí...
-# [Mantener todo el resto del código igual: clases, métricas, endpoints, etc.]
 
 def call_gemini_with_rotation(prompt: str) -> str:
     """Función para llamar a Gemini API con rotación de claves"""
@@ -476,8 +387,6 @@ def get_cached_results(filters: Dict[str, Any]) -> Optional[List[Dict]]:
         return cached['results']
     return None
 
-# ... [Mantener todo el resto del código igual: get_historial_canal, query_properties, etc.]
-
 # ✅ MODELOS DE DATOS PYDANTIC
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000, description="Mensaje del usuario")
@@ -520,8 +429,6 @@ class PropertyResponse(BaseModel):
     moneda_precio: Optional[str] = None
     moneda_expensas: Optional[str] = None
     fecha_procesamiento: Optional[str] = None
-
-# ... [Mantener todas las demás funciones y endpoints exactamente igual]
 
 def get_historial_canal(canal="web", limite=3):
     try:
