@@ -42,7 +42,22 @@ print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
 print("🔍 VARIABLE GEMINI_KEYS específica:")
 print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
-
+def cargar_propiedades_json(filename):
+    """Carga propiedades desde archivo JSON"""
+    try:
+        with open(filename, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+            print(f"✅ Archivo {filename} cargado exitosamente con {len(data)} elementos")
+            return data
+    except FileNotFoundError:
+        print(f"❌ Archivo {filename} no encontrado")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"❌ Error decodificando JSON en {filename}: {e}")
+        return []
+    except Exception as e:
+        print(f"❌ Error al cargar {filename}: {e}")
+        return []
 
 def call_gemini_with_rotation(prompt: str) -> str:
     from config import WORKING_MODEL  # ✅ Importar modelo correcto desde config
@@ -282,8 +297,17 @@ def cargar_propiedades_a_db():
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
-        # Limpiar tabla existente
-        cur.execute("DELETE FROM properties")
+        # ✅ VERIFICAR SI YA EXISTEN PROPIEDADES (CRÍTICO)
+        cur.execute("SELECT COUNT(*) FROM properties")
+        existing_count = cur.fetchone()[0]
+        
+        if existing_count > 0:
+            print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
+            conn.close()
+            return
+        
+        # Solo llegamos aquí si la tabla está vacía
+        print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
         
         propiedades_cargadas = 0
         for p in propiedades:
@@ -312,8 +336,6 @@ def cargar_propiedades_a_db():
                 
             except Exception as e:
                 print(f"⚠️ Error cargando propiedad {p.get('titulo', 'N/A')}: {e}")
-                import traceback
-                traceback.print_exc()
                 continue
         
         conn.commit()
@@ -324,7 +346,6 @@ def cargar_propiedades_a_db():
         print(f"❌ Error cargando propiedades a DB: {e}")
         import traceback
         traceback.print_exc()
-
 
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
@@ -413,110 +434,110 @@ def initialize_databases():
         import traceback
         traceback.print_exc()
         
-def cargar_propiedades_a_db():
-    """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
-    try:
-        propiedades = cargar_propiedades_json("properties.json")
-        if not propiedades:
-            print("❌ No hay propiedades para cargar")
-            return
+# def cargar_propiedades_a_db():
+#     """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
+#     try:
+#         propiedades = cargar_propiedades_json("properties.json")
+#         if not propiedades:
+#             print("❌ No hay propiedades para cargar")
+#             return
         
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
+#         conn = sqlite3.connect(DB_PATH)
+#         cur = conn.cursor()
         
-        # ✅ VERIFICACIÓN CRÍTICA: Solo cargar si la tabla está vacía
-        cur.execute("SELECT COUNT(*) FROM properties")
-        existing_count = cur.fetchone()[0]
+#         # ✅ VERIFICACIÓN CRÍTICA: Solo cargar si la tabla está vacía
+#         cur.execute("SELECT COUNT(*) FROM properties")
+#         existing_count = cur.fetchone()[0]
         
-        if existing_count > 0:
-            print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
-            conn.close()
-            return
+#         if existing_count > 0:
+#             print(f"✅ Ya hay {existing_count} propiedades cargadas, omitiendo carga...")
+#             conn.close()
+#             return
         
-        # Si llegamos aquí, la tabla está vacía, proceder con la carga
-        print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
+#         # Si llegamos aquí, la tabla está vacía, proceder con la carga
+#         print(f"🔄 Cargando {len(propiedades)} propiedades desde properties.json...")
         
-        for prop in propiedades:
-            try:
-                # Limpiar y preparar datos
-                id_temporal = prop.get('id', '').strip() or f"temp_{hash(str(prop)) % 10000}"
-                titulo = prop.get('titulo', '').strip()
-                barrio = prop.get('barrio', '').strip()
+#         for prop in propiedades:
+#             try:
+#                 # Limpiar y preparar datos
+#                 id_temporal = prop.get('id', '').strip() or f"temp_{hash(str(prop)) % 10000}"
+#                 titulo = prop.get('titulo', '').strip()
+#                 barrio = prop.get('barrio', '').strip()
                 
-                # Procesamiento de precio y expensas
-                precio_raw = prop.get('precio', 0)
-                expensas_raw = prop.get('expensas', 0)
+#                 # Procesamiento de precio y expensas
+#                 precio_raw = prop.get('precio', 0)
+#                 expensas_raw = prop.get('expensas', 0)
                 
-                # Convertir a float, manejar valores vacíos/nulos
-                try:
-                    precio = float(precio_raw) if precio_raw not in ['', None, 'Consultar'] else 0
-                except:
-                    precio = 0
+#                 # Convertir a float, manejar valores vacíos/nulos
+#                 try:
+#                     precio = float(precio_raw) if precio_raw not in ['', None, 'Consultar'] else 0
+#                 except:
+#                     precio = 0
                     
-                try:
-                    expensas = float(expensas_raw) if expensas_raw not in ['', None, 'Consultar'] else 0
-                except:
-                    expensas = 0
+#                 try:
+#                     expensas = float(expensas_raw) if expensas_raw not in ['', None, 'Consultar'] else 0
+#                 except:
+#                     expensas = 0
                 
-                # Otros campos numéricos
-                try:
-                    ambientes = int(prop.get('ambientes', 0)) if prop.get('ambientes') else 0
-                except:
-                    ambientes = 0
+#                 # Otros campos numéricos
+#                 try:
+#                     ambientes = int(prop.get('ambientes', 0)) if prop.get('ambientes') else 0
+#                 except:
+#                     ambientes = 0
                     
-                try:
-                    metros = float(prop.get('metros_cuadrados', 0)) if prop.get('metros_cuadrados') else 0
-                except:
-                    metros = 0
+#                 try:
+#                     metros = float(prop.get('metros_cuadrados', 0)) if prop.get('metros_cuadrados') else 0
+#                 except:
+#                     metros = 0
                 
-                # Insertar en la base de datos
-                cur.execute('''
-                    INSERT OR REPLACE INTO properties (
-                        id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
-                        operacion, tipo, descripcion, direccion, antiguedad, estado,
-                        orientacion, expensas, amenities, cochera, balcon, pileta,
-                        acepta_mascotas, aire_acondicionado, info_multimedia,
-                        documentos, videos, fotos, moneda_precio, moneda_expensas,
-                        fecha_procesamiento
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    id_temporal, titulo, barrio, precio, ambientes, metros,
-                    prop.get('operacion', '').strip(),
-                    prop.get('tipo', '').strip(),
-                    prop.get('descripcion', '').strip(),
-                    prop.get('direccion', '').strip(),
-                    prop.get('antiguedad', 0) if prop.get('antiguedad') else 0,
-                    prop.get('estado', '').strip(),
-                    prop.get('orientacion', '').strip(),
-                    expensas,
-                    prop.get('amenities', '').strip(),
-                    prop.get('cochera', '').strip(),
-                    prop.get('balcon', '').strip(),
-                    prop.get('pileta', '').strip(),
-                    prop.get('acepta_mascotas', '').strip(),
-                    prop.get('aire_acondicionado', '').strip(),
-                    prop.get('info_multimedia', '').strip(),
-                    prop.get('documentos', '').strip(),
-                    prop.get('videos', '').strip(),
-                    prop.get('fotos', '').strip(),
-                    prop.get('moneda_precio', 'ARS').strip(),
-                    prop.get('moneda_expensas', 'ARS').strip(),
-                    prop.get('fecha_procesamiento', '').strip()
-                ))
+#                 # Insertar en la base de datos
+#                 cur.execute('''
+#                     INSERT OR REPLACE INTO properties (
+#                         id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
+#                         operacion, tipo, descripcion, direccion, antiguedad, estado,
+#                         orientacion, expensas, amenities, cochera, balcon, pileta,
+#                         acepta_mascotas, aire_acondicionado, info_multimedia,
+#                         documentos, videos, fotos, moneda_precio, moneda_expensas,
+#                         fecha_procesamiento
+#                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+#                 ''', (
+#                     id_temporal, titulo, barrio, precio, ambientes, metros,
+#                     prop.get('operacion', '').strip(),
+#                     prop.get('tipo', '').strip(),
+#                     prop.get('descripcion', '').strip(),
+#                     prop.get('direccion', '').strip(),
+#                     prop.get('antiguedad', 0) if prop.get('antiguedad') else 0,
+#                     prop.get('estado', '').strip(),
+#                     prop.get('orientacion', '').strip(),
+#                     expensas,
+#                     prop.get('amenities', '').strip(),
+#                     prop.get('cochera', '').strip(),
+#                     prop.get('balcon', '').strip(),
+#                     prop.get('pileta', '').strip(),
+#                     prop.get('acepta_mascotas', '').strip(),
+#                     prop.get('aire_acondicionado', '').strip(),
+#                     prop.get('info_multimedia', '').strip(),
+#                     prop.get('documentos', '').strip(),
+#                     prop.get('videos', '').strip(),
+#                     prop.get('fotos', '').strip(),
+#                     prop.get('moneda_precio', 'ARS').strip(),
+#                     prop.get('moneda_expensas', 'ARS').strip(),
+#                     prop.get('fecha_procesamiento', '').strip()
+#                 ))
                 
-            except Exception as e:
-                print(f"⚠️ Error procesando propiedad {titulo}: {e}")
-                continue
+#             except Exception as e:
+#                 print(f"⚠️ Error procesando propiedad {titulo}: {e}")
+#                 continue
         
-        conn.commit()
-        conn.close()
+#         conn.commit()
+#         conn.close()
         
-        print(f"✅ {len(propiedades)} propiedades cargadas exitosamente en la base de datos")
+#         print(f"✅ {len(propiedades)} propiedades cargadas exitosamente en la base de datos")
         
-    except Exception as e:
-        print(f"❌ Error cargando propiedades: {e}")
-        import traceback
-        traceback.print_exc()
+#     except Exception as e:
+#         print(f"❌ Error cargando propiedades: {e}")
+#         import traceback
+#         traceback.print_exc()
 
 def extraer_barrios(propiedades):
     return sorted(set(p.get("barrio", "").lower() for p in propiedades if p.get("barrio")))
