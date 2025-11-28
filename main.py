@@ -329,12 +329,15 @@ def cargar_propiedades_a_db():
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
+        # ✅ COMENTADO: Borrado forzoso de BD (para mantener persistencia)
         # if os.path.exists(DB_PATH):
         #     os.remove(DB_PATH)
-            print("🗑️ Base de datos propiedades eliminada forzadamente")
-        if os.path.exists(LOG_PATH):
-            os.remove(LOG_PATH)
-            print("🗑️ Base de datos logs eliminada forzadamente")
+        #     print("🗑️ Base de datos propiedades eliminada forzadamente")
+        
+        # ✅ COMENTADO: Borrado forzoso de logs (para mantener persistencia)
+        # if os.path.exists(LOG_PATH):
+        #     os.remove(LOG_PATH)
+        #     print("🗑️ Base de datos logs eliminada forzadamente")
         
         # Base de datos de logs
         conn = sqlite3.connect(LOG_PATH)
@@ -409,21 +412,22 @@ def initialize_databases():
         print(f"❌ Error inicializando bases de datos: {e}")
         import traceback
         traceback.print_exc()
-
-def cargar_propiedades_json(filename):
+        
+def cargar_propiedades_a_db():
+    """Carga las propiedades del JSON a la base de datos SQLite con mapeo correcto de campos y tipos"""
     try:
-        with open(filename, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"⚠️ Archivo {filename} no encontrado")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"⚠️ Error decodificando JSON en {filename}: {e}")
-        return []
-    except Exception as e:
-        print(f"⚠️ Error al cargar {filename}: {e}")
-        return []
-
+        propiedades = cargar_propiedades_json("properties.json")
+        if not propiedades:
+            print("❌ No hay propiedades para cargar")
+            return
+        
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # ✅ VERIFICACIÓN CRÍTICA: Solo cargar si la tabla está vacía
+        cur.execute("SELECT COUNT(*) FROM properties")
+        
+        
 def extraer_barrios(propiedades):
     return sorted(set(p.get("barrio", "").lower() for p in propiedades if p.get("barrio")))
 
