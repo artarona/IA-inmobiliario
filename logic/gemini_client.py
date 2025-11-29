@@ -2,44 +2,25 @@ import os
 import google.generativeai as genai
 from typing import Optional, Dict, Any, List
 
-# ✅ DIAGNÓSTICO COMPLETO
+# ✅ CONFIGURACIÓN GLOBAL - DEFINIR LAS VARIABLES EN SCOPE GLOBAL
 print("=" * 50)
-print("🔍 DIAGNÓSTICO DETALLADO DE VARIABLES")
+print("🔍 INICIALIZANDO GEMINI CLIENT")
 print("=" * 50)
 
-# Listar TODAS las variables de entorno disponibles
-print("📋 TODAS LAS VARIABLES DE ENTORNO:")
-for key, value in os.environ.items():
-    if "GEMINI" in key or "MODEL" in key:
-        masked_value = '***' + value[-4:] if value and len(value) > 4 else 'VACÍA'
-        print(f"   {key} = {masked_value}")
-
-# Verificación específica
-print("\n🔎 VERIFICACIÓN ESPECÍFICA:")
+# Cargar API keys UNA SOLA VEZ en scope global
 API_KEYS = []
 for i in range(1, 4):
     key_name = f"GEMINI_API_KEY_{i}"
     key_value = os.environ.get(key_name)
     if key_value and key_value.strip():
-        print(f"   ✅ {key_name}: PRESENTE (longitud: {len(key_value)})")
         API_KEYS.append(key_value.strip())
-    else:
-        print(f"   ❌ {key_name}: AUSENTE O VACÍA")
+        print(f"✅ {key_name}: Cargada correctamente")
 
-print("=" * 50)
-
-# ✅ CONFIGURACIÓN CORRECTA - Usar las keys que SÍ encontramos
 MODEL = os.environ.get("WORKING_MODEL", "gemini-2.0-flash-001")
-print(f"🎯 RESUMEN FINAL: Modelo={MODEL}, Claves={len(API_KEYS)}")
 
-# ✅ VERIFICAR FORMATO DE LAS CLAVES
+print(f"🎯 CONFIGURACIÓN FINAL: Modelo={MODEL}, Claves={len(API_KEYS)}")
 if API_KEYS:
-    for i, key in enumerate(API_KEYS):
-        if key.startswith('AIza'):
-            print(f"   ✅ Clave {i+1}: Formato correcto (comienza con AIza)")
-        else:
-            print(f"   ⚠️ Clave {i+1}: Formato inusual (no comienza con AIza)")
-
+    print(f"🔑 Formato clave 1: {'VÁLIDO' if API_KEYS[0].startswith('AIza') else 'INUSUAL'}")
 print("=" * 50)
 
 def call_gemini_with_rotation(prompt: str) -> str:
@@ -50,7 +31,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
     
     if not API_KEYS:
         print("⚠️ No hay API keys configuradas, usando modo básico")
-        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n\n**⚠️ Para activar IA completa:**\nLas API keys están configuradas pero hay un error de conexión.\n\n🏠 **¡La búsqueda funciona!**"
+        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n\n🏠 **¡La búsqueda funciona!**"
     
     for i, key in enumerate(API_KEYS):
         try:
@@ -76,18 +57,22 @@ def call_gemini_with_rotation(prompt: str) -> str:
 
         except Exception as e:
             error_type = type(e).__name__
-            if "ResourceExhausted" in error_type or "429" in str(e):
+            error_msg = str(e)
+            
+            if "ResourceExhausted" in error_type or "429" in error_msg:
                 print(f"❌ Clave {i+1} agotada")
-            elif "PermissionDenied" in error_type or "401" in str(e):
-                print(f"❌ Clave {i+1} no autorizada") 
-            elif "API_KEY_INVALID" in str(e):
-                print(f"❌ Clave {i+1} inválida")
+            elif "PermissionDenied" in error_type or "401" in error_msg or "API_KEY_INVALID" in error_msg:
+                print(f"❌ Clave {i+1} no autorizada/inválida")
+            elif "quota" in error_msg.lower():
+                print(f"❌ Clave {i+1} sin quota")
             else:
-                print(f"❌ Clave {i+1} error: {error_type} - {str(e)}")
+                print(f"❌ Clave {i+1} error: {error_type} - {error_msg[:100]}")
             continue
     
+    print("💥 TODAS las claves fallaron")
     return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando pero hay un problema temporal con el servicio de IA.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **El modo conversacional IA está temporalmente desactivado.**\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **¡La búsqueda de propiedades funciona perfectamente!**"
 
+# ... (el resto de build_prompt permanece igual)
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
