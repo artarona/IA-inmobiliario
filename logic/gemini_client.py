@@ -2,8 +2,6 @@ import os
 import google.generativeai as genai
 from typing import Optional, Dict, Any, List
 
-
-
 # ✅ DIAGNÓSTICO COMPLETO
 print("=" * 50)
 print("🔍 DIAGNÓSTICO DETALLADO DE VARIABLES")
@@ -13,36 +11,36 @@ print("=" * 50)
 print("📋 TODAS LAS VARIABLES DE ENTORNO:")
 for key, value in os.environ.items():
     if "GEMINI" in key or "MODEL" in key:
-        print(f"   {key} = {'***' + value[-4:] if value else 'VACÍA'}")
+        masked_value = '***' + value[-4:] if value and len(value) > 4 else 'VACÍA'
+        print(f"   {key} = {masked_value}")
 
 # Verificación específica
 print("\n🔎 VERIFICACIÓN ESPECÍFICA:")
+API_KEYS = []
 for i in range(1, 4):
     key_name = f"GEMINI_API_KEY_{i}"
     key_value = os.environ.get(key_name)
     if key_value and key_value.strip():
         print(f"   ✅ {key_name}: PRESENTE (longitud: {len(key_value)})")
+        API_KEYS.append(key_value.strip())
     else:
         print(f"   ❌ {key_name}: AUSENTE O VACÍA")
 
 print("=" * 50)
 
-
-# Cargar API keys desde variables de entorno de Render
-API_KEYS = [
-    os.environ.get("AIzaSyD9FQpUcGquJraolGlaTVYaMnK1rB4VG90", ""),
-    os.environ.get("AIzaSyA2aQRLwV9I0AReylVc0nqohyo1FgoWzqU", ""), 
-    os.environ.get("AIzaSyCl7FQKIKvI1d7_mFCzFZPRGSaTpK-rsK0", "")
-]
-# Filtrar solo las claves no vacías
-API_KEYS = [key.strip() for key in API_KEYS if key and key.strip()]
-
-ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
+# ✅ CONFIGURACIÓN CORRECTA - Usar las keys que SÍ encontramos
 MODEL = os.environ.get("WORKING_MODEL", "gemini-2.0-flash-001")
+print(f"🎯 RESUMEN FINAL: Modelo={MODEL}, Claves={len(API_KEYS)}")
 
-print(f"🎯 MODELO CONFIGURADO: {MODEL}")
-print(f"🔑 API KEYS CARGADAS: {len(API_KEYS)}")
-print(f"🔧 Configuración cargada - Claves: {len(API_KEYS)}, Modelo: {MODEL}")
+# ✅ VERIFICAR FORMATO DE LAS CLAVES
+if API_KEYS:
+    for i, key in enumerate(API_KEYS):
+        if key.startswith('AIza'):
+            print(f"   ✅ Clave {i+1}: Formato correcto (comienza con AIza)")
+        else:
+            print(f"   ⚠️ Clave {i+1}: Formato inusual (no comienza con AIza)")
+
+print("=" * 50)
 
 def call_gemini_with_rotation(prompt: str) -> str:
     """Función para llamar a Gemini API con rotación de claves"""
@@ -52,15 +50,12 @@ def call_gemini_with_rotation(prompt: str) -> str:
     
     if not API_KEYS:
         print("⚠️ No hay API keys configuradas, usando modo básico")
-        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar IA completa:**\nConfigura las API keys de Gemini.\n\n🏠 **¡La búsqueda funciona al 100%!**"
+        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n\n**⚠️ Para activar IA completa:**\nLas API keys están configuradas pero hay un error de conexión.\n\n🏠 **¡La búsqueda funciona!**"
     
     for i, key in enumerate(API_KEYS):
-        if not key.strip():
-            continue
-            
         try:
             print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
-            genai.configure(api_key=key.strip())
+            genai.configure(api_key=key)
             model = genai.GenerativeModel(MODEL)
             
             response = model.generate_content(
@@ -85,22 +80,18 @@ def call_gemini_with_rotation(prompt: str) -> str:
                 print(f"❌ Clave {i+1} agotada")
             elif "PermissionDenied" in error_type or "401" in str(e):
                 print(f"❌ Clave {i+1} no autorizada") 
+            elif "API_KEY_INVALID" in str(e):
+                print(f"❌ Clave {i+1} inválida")
             else:
-                print(f"❌ Clave {i+1} error: {error_type}")
+                print(f"❌ Clave {i+1} error: {error_type} - {str(e)}")
             continue
     
-    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n\n⚠️ **Para respuestas IA completas** configura las API keys."
-
-# ... resto del código de build_prompt ...
-
-
-
+    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando pero hay un problema temporal con el servicio de IA.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **El modo conversacional IA está temporalmente desactivado.**\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **¡La búsqueda de propiedades funciona perfectamente!**"
 
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
     if property_details:
-        # Formatear detalles específicos de propiedad según JSON
         detalles = f"""
 Título: {property_details.get('titulo', 'N/A')}
 Barrio: {property_details.get('barrio', 'N/A')}
@@ -129,7 +120,6 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
         )
     
     if results is not None and results:
-        # Lista de emojis según tipo de propiedad
         property_emojis = {
             'casa': '🏠',
             'departamento': '🏢', 
@@ -139,7 +129,6 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
             'casaquinta': '🏘️'
         }
         
-        # Formatear propiedades con estructura específica
         properties_list = []
         for i, r in enumerate(results[:6]):
             emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
