@@ -4,9 +4,9 @@ from typing import Optional, Dict, Any, List
 
 # Cargar API keys desde variables de entorno de Render
 API_KEYS = [
-    os.environ.get("GEMINI_API_KEY_1", "").strip(),
-    os.environ.get("GEMINI_API_KEY_2", "").strip(), 
-    os.environ.get("GEMINI_API_KEY_3", "").strip()
+    os.environ.get("AIzaSyD9FQpUcGquJraolGlaTVYaMnK1rB4VG90", "").strip(),
+    os.environ.get("AIzaSyA2aQRLwV9I0AReylVc0nqohyo1FgoWzqU", "").strip(), 
+    os.environ.get("AIzaSyCl7FQKIKvI1d7_mFCzFZPRGSaTpK-rsK0", "").strip()
 ]
 # Filtrar solo las claves no vacías
 API_KEYS = [key for key in API_KEYS if key]
