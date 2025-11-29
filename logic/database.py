@@ -6,10 +6,12 @@ from typing import List, Dict, Any, Optional
 DB_PATH = "dante_properties.db"
 LOG_PATH = "conversation_logs.db"
 
+
+
 def initialize_databases():
-    """Inicializa las bases de datos con el esquema CORRECTO"""
+    """Inicializa las bases de datos cargando propiedades desde JSON"""
     try:
-        print("🔄 INICIALIZANDO BD CON ESQUEMA CORREGIDO...")
+        print("🔄 INICIALIZANDO BD CARGANDO DESDE JSON...")
         
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
@@ -17,7 +19,7 @@ def initialize_databases():
             # ELIMINAR tabla existente para forzar recreación
             cursor.execute("DROP TABLE IF EXISTS properties")
             
-            # CREAR tabla con TODAS las columnas necesarias
+            # CREAR tabla con esquema completo
             cursor.execute('''
                 CREATE TABLE properties (
                     id_temporal TEXT PRIMARY KEY,
@@ -50,99 +52,14 @@ def initialize_databases():
                 )
             ''')
             
-            # Insertar datos de ejemplo COMPLETOS
-            propiedades = [
-                {
-                    'id_temporal': 'prop_001',
-                    'titulo': 'Casa en Parque Avellaneda',
-                    'barrio': 'Parque Avellaneda', 
-                    'precio': 250000.0,
-                    'ambientes': 3,
-                    'metros_cuadrados': 120.0,
-                    'descripcion': 'Hermosa casa con jardín y cochera, ideal para familia',
-                    'operacion': 'venta',
-                    'tipo': 'casa',
-                    'direccion': 'Av. Directorio 4500',
-                    'antiguedad': 10,
-                    'expensas': 5000.0,
-                    'cochera': 'Sí',
-                    'balcon': 'Sí',
-                    'pileta': 'No',
-                    'acepta_mascotas': 'Sí',
-                    'aire_acondicionado': 'Sí',
-                    'moneda_precio': 'USD',
-                    'moneda_expensas': 'ARS'
-                },
-                {
-                    'id_temporal': 'prop_002',
-                    'titulo': 'Terreno en Boedo',
-                    'barrio': 'Boedo',
-                    'precio': 150000.0,
-                    'ambientes': 0,
-                    'metros_cuadrados': 200.0,
-                    'descripcion': 'Terreno ideal para construcción, excelente ubicación',
-                    'operacion': 'venta',
-                    'tipo': 'terreno', 
-                    'direccion': 'Av. La Plata 1200',
-                    'moneda_precio': 'USD'
-                },
-                {
-                    'id_temporal': 'prop_003',
-                    'titulo': 'Monoambiente microcentro',
-                    'barrio': 'Microcentro',
-                    'precio': 80000.0,
-                    'ambientes': 1,
-                    'metros_cuadrados': 35.0,
-                    'descripcion': 'Monoambiente totalmente equipado, listo para entrar',
-                    'operacion': 'venta',
-                    'tipo': 'departamento',
-                    'direccion': 'Lavalle 800',
-                    'antiguedad': 5,
-                    'expensas': 3000.0,
-                    'balcon': 'Sí',
-                    'aire_acondicionado': 'Sí',
-                    'moneda_precio': 'USD',
-                    'moneda_expensas': 'ARS'
-                },
-                {
-                    'id_temporal': 'prop_004',
-                    'titulo': 'Oficina en Microcentro Superluminoso',
-                    'barrio': 'Microcentro',
-                    'precio': 120000.0,
-                    'ambientes': 2,
-                    'metros_cuadrados': 45.0,
-                    'descripcion': 'Oficina luminosa con excelentes vistas, totalmente equipada',
-                    'operacion': 'venta',
-                    'tipo': 'oficina',
-                    'direccion': 'Corrientes 1234',
-                    'antiguedad': 3,
-                    'expensas': 8000.0,
-                    'aire_acondicionado': 'Sí',
-                    'moneda_precio': 'USD',
-                    'moneda_expensas': 'ARS'
-                },
-                {
-                    'id_temporal': 'prop_005', 
-                    'titulo': 'PH en Palermo',
-                    'barrio': 'Palermo',
-                    'precio': 350000.0,
-                    'ambientes': 4,
-                    'metros_cuadrados': 180.0,
-                    'descripcion': 'PH con patio privado, excelente estado, mucha privacidad',
-                    'operacion': 'venta',
-                    'tipo': 'ph',
-                    'direccion': 'Honduras 4500',
-                    'antiguedad': 8,
-                    'expensas': 7000.0,
-                    'cochera': 'Sí',
-                    'balcon': 'Sí',
-                    'pileta': 'No',
-                    'acepta_mascotas': 'Sí',
-                    'moneda_precio': 'USD',
-                    'moneda_expensas': 'ARS'
-                }
-            ]
+            # ✅ CARGAR PROPIEDADES DESDE ARCHIVO JSON
+            propiedades = cargar_propiedades_desde_json()
             
+            if not propiedades:
+                print("⚠️ No se pudieron cargar propiedades desde JSON, usando datos de ejemplo")
+                propiedades = obtener_propiedades_ejemplo()
+            
+            # Insertar propiedades en la base de datos
             for prop in propiedades:
                 try:
                     cursor.execute('''
@@ -153,8 +70,9 @@ def initialize_databases():
                             moneda_precio, moneda_expensas
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
-                        prop['id_temporal'], prop['titulo'], prop['barrio'], prop['precio'],
-                        prop['ambientes'], prop['metros_cuadrados'], prop['descripcion'],
+                        prop.get('id_temporal', f"prop_{hash(prop.get('titulo', ''))}"),
+                        prop['titulo'], prop['barrio'], prop['precio'],
+                        prop['ambientes'], prop['metros_cuadrados'], prop.get('descripcion', ''),
                         prop['operacion'], prop['tipo'], prop.get('direccion'),
                         prop.get('antiguedad'), prop.get('expensas'), prop.get('cochera'),
                         prop.get('balcon'), prop.get('pileta'), prop.get('acepta_mascotas'),
@@ -163,13 +81,74 @@ def initialize_databases():
                     ))
                     print(f"✅ Propiedad cargada: {prop['titulo']}")
                 except Exception as e:
-                    print(f"⚠️ Error cargando propiedad {prop['titulo']}: {e}")
+                    print(f"⚠️ Error cargando propiedad {prop.get('titulo', 'N/A')}: {e}")
             
             conn.commit()
             print(f"✅ Base de datos inicializada con {len(propiedades)} propiedades")
             
     except Exception as e:
         print(f"❌ Error crítico inicializando base de datos: {e}")
+
+def cargar_propiedades_desde_json():
+    """Carga propiedades desde el archivo properties.json"""
+    try:
+        json_path = "properties.json"
+        
+        # Verificar si el archivo existe
+        if not os.path.exists(json_path):
+            print(f"❌ Archivo {json_path} no encontrado")
+            return None
+        
+        # Leer y parsear el JSON
+        with open(json_path, 'r', encoding='utf-8') as f:
+            propiedades_data = json.load(f)
+        
+        print(f"📁 Archivo {json_path} encontrado, cargando propiedades...")
+        
+        # El archivo puede tener diferentes estructuras, manejemos ambas
+        if isinstance(propiedades_data, list):
+            # Caso 1: El JSON es directamente una lista de propiedades
+            propiedades = propiedades_data
+            print(f"   📊 Estructura: Lista directa ({len(propiedades)} propiedades)")
+        elif isinstance(propiedades_data, dict) and 'propiedades' in propiedades_data:
+            # Caso 2: El JSON tiene un objeto con clave 'propiedades'
+            propiedades = propiedades_data['propiedades']
+            print(f"   📊 Estructura: Objeto con clave 'propiedades' ({len(propiedades)} propiedades)")
+        else:
+            print(f"❌ Estructura JSON no reconocida")
+            return None
+        
+        # Validar propiedades mínimas requeridas
+        propiedades_validas = []
+        for prop in propiedades:
+            if all(key in prop for key in ['titulo', 'barrio', 'precio', 'operacion', 'tipo']):
+                propiedades_validas.append(prop)
+            else:
+                print(f"⚠️ Propiedad incompleta omitida: {prop.get('titulo', 'Sin título')}")
+        
+        print(f"✅ {len(propiedades_validas)} propiedades válidas cargadas desde JSON")
+        return propiedades_validas
+        
+    except Exception as e:
+        print(f"❌ Error cargando propiedades desde JSON: {e}")
+        return None
+
+def obtener_propiedades_ejemplo():
+    """Propiedades de ejemplo por si falla la carga del JSON"""
+    return [
+        {
+            'id_temporal': 'prop_backup_001',
+            'titulo': 'Casa de respaldo en Palermo',
+            'barrio': 'Palermo',
+            'precio': 1200.0,
+            'ambientes': 2,
+            'metros_cuadrados': 65.0,
+            'descripcion': 'Propiedad de respaldo cargada desde código',
+            'operacion': 'alquiler',
+            'tipo': 'departamento',
+            'moneda_precio': 'USD'
+        }
+    ]
 
 def verificar_y_reparar_bd():
     """Verifica y repara la base de datos si es necesario"""
