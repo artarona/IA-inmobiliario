@@ -2,6 +2,32 @@ import os
 import google.generativeai as genai
 from typing import Optional, Dict, Any, List
 
+
+
+# ✅ DIAGNÓSTICO COMPLETO
+print("=" * 50)
+print("🔍 DIAGNÓSTICO DETALLADO DE VARIABLES")
+print("=" * 50)
+
+# Listar TODAS las variables de entorno disponibles
+print("📋 TODAS LAS VARIABLES DE ENTORNO:")
+for key, value in os.environ.items():
+    if "GEMINI" in key or "MODEL" in key:
+        print(f"   {key} = {'***' + value[-4:] if value else 'VACÍA'}")
+
+# Verificación específica
+print("\n🔎 VERIFICACIÓN ESPECÍFICA:")
+for i in range(1, 4):
+    key_name = f"GEMINI_API_KEY_{i}"
+    key_value = os.environ.get(key_name)
+    if key_value and key_value.strip():
+        print(f"   ✅ {key_name}: PRESENTE (longitud: {len(key_value)})")
+    else:
+        print(f"   ❌ {key_name}: AUSENTE O VACÍA")
+
+print("=" * 50)
+
+
 # Cargar API keys desde variables de entorno de Render
 API_KEYS = [
     os.environ.get("AIzaSyD9FQpUcGquJraolGlaTVYaMnK1rB4VG90", ""),
