@@ -89,44 +89,70 @@ def initialize_databases():
     except Exception as e:
         print(f"❌ Error crítico inicializando base de datos: {e}")
 
+
+
 def cargar_propiedades_desde_json():
-    """Carga propiedades desde el archivo properties.json"""
+    """Carga propiedades desde el archivo propiedades.json"""
     try:
-        json_path = "properties.json"
+        json_path = "propiedades.json"  # ✅ CAMBIADO de properties.json a propiedades.json
         
-        # Verificar si el archivo existe
         if not os.path.exists(json_path):
             print(f"❌ Archivo {json_path} no encontrado")
             return None
         
-        # Leer y parsear el JSON
         with open(json_path, 'r', encoding='utf-8') as f:
-            propiedades_data = json.load(f)
-        
-        print(f"📁 Archivo {json_path} encontrado, cargando propiedades...")
-        
-        # El archivo puede tener diferentes estructuras, manejemos ambas
-        if isinstance(propiedades_data, list):
-            # Caso 1: El JSON es directamente una lista de propiedades
-            propiedades = propiedades_data
-            print(f"   📊 Estructura: Lista directa ({len(propiedades)} propiedades)")
-        elif isinstance(propiedades_data, dict) and 'propiedades' in propiedades_data:
-            # Caso 2: El JSON tiene un objeto con clave 'propiedades'
-            propiedades = propiedades_data['propiedades']
-            print(f"   📊 Estructura: Objeto con clave 'propiedades' ({len(propiedades)} propiedades)")
-        else:
-            print(f"❌ Estructura JSON no reconocida")
+            contenido = f.read().strip()
+            
+        if not contenido:
+            print(f"❌ Archivo {json_path} está vacío")
             return None
         
-        # Validar propiedades mínimas requeridas
+        # Intentar parsear como array
+        try:
+            propiedades_data = json.loads(contenido)
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parseando JSON: {e}")
+            return None
+        
+        print(f"📁 Archivo {json_path} cargado, analizando estructura...")
+        
+        # Manejar diferentes estructuras
+        propiedades = []
+        
+        if isinstance(propiedades_data, list):
+            propiedades = propiedades_data
+            print(f"   ✅ Estructura: Array con {len(propiedades)} propiedades")
+        elif isinstance(propiedades_data, dict):
+            # Si es un solo objeto, convertirlo a array
+            if any(key in propiedades_data for key in ['id_temporal', 'titulo', 'precio']):
+                propiedades = [propiedades_data]
+                print(f"   ⚠️  Estructura: Objeto individual convertido a array")
+            elif 'propiedades' in propiedades_data:
+                propiedades = propiedades_data['propiedades']
+                print(f"   ✅ Estructura: Objeto con clave 'propiedades' ({len(propiedades)} propiedades)")
+            else:
+                print(f"❌ Estructura de objeto no reconocida")
+                return None
+        else:
+            print(f"❌ Tipo de JSON no soportado: {type(propiedades_data)}")
+            return None
+        
+        # Validar y contar por operación
         propiedades_validas = []
+        contador_operaciones = {'venta': 0, 'alquiler': 0}
+        
         for prop in propiedades:
             if all(key in prop for key in ['titulo', 'barrio', 'precio', 'operacion', 'tipo']):
                 propiedades_validas.append(prop)
+                operacion = prop['operacion'].lower()
+                if operacion in contador_operaciones:
+                    contador_operaciones[operacion] += 1
             else:
                 print(f"⚠️ Propiedad incompleta omitida: {prop.get('titulo', 'Sin título')}")
         
-        print(f"✅ {len(propiedades_validas)} propiedades válidas cargadas desde JSON")
+        print(f"✅ {len(propiedades_validas)} propiedades válidas cargadas")
+        print(f"   📊 Venta: {contador_operaciones['venta']}, Alquiler: {contador_operaciones['alquiler']}")
+        
         return propiedades_validas
         
     except Exception as e:
