@@ -14,6 +14,8 @@ API_KEYS = [key.strip() for key in API_KEYS if key and key.strip()]
 ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
 MODEL = os.environ.get("WORKING_MODEL", "gemini-2.0-flash-001")
 
+print(f"🎯 MODELO CONFIGURADO: {MODEL}")
+print(f"🔑 API KEYS CARGADAS: {len(API_KEYS)}")
 print(f"🔧 Configuración cargada - Claves: {len(API_KEYS)}, Modelo: {MODEL}")
 
 def call_gemini_with_rotation(prompt: str) -> str:
