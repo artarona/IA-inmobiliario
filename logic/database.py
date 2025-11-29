@@ -71,79 +71,67 @@ def cargar_propiedades_a_db():
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
 
-def initialize_databases():
-    """Inicializa las bases de datos si no existen"""
-    try:
-        print("🔄 Inicializando bases de datos...")
-        
-        # Base de datos de logs
-        conn = sqlite3.connect(LOG_PATH)
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                channel TEXT,
-                user_message TEXT,
-                bot_response TEXT,
-                response_time REAL,
-                search_performed BOOLEAN DEFAULT 0,
-                results_count INTEGER DEFAULT 0
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        print("✅ Tabla 'logs' creada/verificada")
-        
-        # Base de datos de propiedades
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS properties (
-                id_temporal TEXT PRIMARY KEY,
-                titulo TEXT,
-                barrio TEXT,
-                precio REAL,
-                ambientes INTEGER,
-                metros_cuadrados REAL,
-                operacion TEXT,
-                tipo TEXT,
-                descripcion TEXT,
-                direccion TEXT,
-                antiguedad INTEGER,
-                estado TEXT,
-                orientacion TEXT,
-                expensas REAL,
-                amenities TEXT,
-                cochera TEXT,
-                balcon TEXT,
-                pileta TEXT,
-                acepta_mascotas TEXT,
-                aire_acondicionado TEXT,
-                info_multimedia TEXT,
-                documentos TEXT,
-                videos TEXT,
-                fotos TEXT,
-                moneda_precio TEXT,
-                moneda_expensas TEXT,
-                fecha_procesamiento TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        print("✅ Tabla 'properties' creada/verificada")
+# En logic/database.py - actualiza la función initialize_databases()
 
-        # Cargar propiedades después de crear la tabla
-        cargar_propiedades_a_db()
-        
-        print("✅ Bases de datos inicializadas correctamente")
-        
+def initialize_databases():
+    """Inicializa las bases de datos con el esquema correcto"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Tabla de logs
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    channel TEXT NOT NULL,
+                    user_message TEXT NOT NULL,
+                    bot_response TEXT NOT NULL,
+                    response_time REAL,
+                    search_performed INTEGER DEFAULT 0,
+                    results_count INTEGER DEFAULT 0
+                )
+            ''')
+            
+            # Tabla de propiedades con todas las columnas necesarias
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS properties (
+                    id_temporal TEXT PRIMARY KEY,
+                    titulo TEXT NOT NULL,
+                    barrio TEXT NOT NULL,
+                    precio REAL NOT NULL,
+                    ambientes INTEGER NOT NULL,
+                    metros_cuadrados REAL NOT NULL,
+                    descripcion TEXT,
+                    operacion TEXT NOT NULL,
+                    tipo TEXT NOT NULL,
+                    direccion TEXT,
+                    antiguedad INTEGER,
+                    estado TEXT,
+                    orientacion TEXT,
+                    expensas REAL,
+                    amenities TEXT,
+                    cochera TEXT,
+                    balcon TEXT,
+                    pileta TEXT,
+                    acepta_mascotas TEXT,
+                    aire_acondicionado TEXT,
+                    info_multimedia TEXT,
+                    documentos TEXT,
+                    videos TEXT,
+                    fotos TEXT,
+                    moneda_precio TEXT DEFAULT 'USD',
+                    moneda_expensas TEXT DEFAULT 'ARS',
+                    fecha_procesamiento TEXT
+                )
+            ''')
+            
+            conn.commit()
+            print("✅ Tablas creadas/verificadas con esquema actualizado")
+            
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
-
+        
 def verificar_y_reparar_bd():
     """Verifica y repara la base de datos en cada inicio"""
     try:

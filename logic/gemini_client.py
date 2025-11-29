@@ -4,15 +4,17 @@ from typing import Optional, Dict, Any, List
 
 # Cargar API keys desde variables de entorno de Render
 API_KEYS = [
-    os.environ.get("AIzaSyD9FQpUcGquJraolGlaTVYaMnK1rB4VG90", "").strip(),
-    os.environ.get("AIzaSyA2aQRLwV9I0AReylVc0nqohyo1FgoWzqU", "").strip(), 
-    os.environ.get("AIzaSyCl7FQKIKvI1d7_mFCzFZPRGSaTpK-rsK0", "").strip()
+    os.environ.get("AIzaSyD9FQpUcGquJraolGlaTVYaMnK1rB4VG90", ""),
+    os.environ.get("AIzaSyA2aQRLwV9I0AReylVc0nqohyo1FgoWzqU", ""), 
+    os.environ.get("AIzaSyCl7FQKIKvI1d7_mFCzFZPRGSaTpK-rsK0", "")
 ]
 # Filtrar solo las claves no vacías
-API_KEYS = [key for key in API_KEYS if key]
+API_KEYS = [key.strip() for key in API_KEYS if key and key.strip()]
 
 ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
 MODEL = os.environ.get("WORKING_MODEL", "gemini-2.0-flash-001")
+
+print(f"🔧 Configuración cargada - Claves: {len(API_KEYS)}, Modelo: {MODEL}")
 
 def call_gemini_with_rotation(prompt: str) -> str:
     """Función para llamar a Gemini API con rotación de claves"""
@@ -22,7 +24,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
     
     if not API_KEYS:
         print("⚠️ No hay API keys configuradas, usando modo básico")
-        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!**"
+        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar IA completa:**\nConfigura las API keys de Gemini.\n\n🏠 **¡La búsqueda funciona al 100%!**"
     
     for i, key in enumerate(API_KEYS):
         if not key.strip():
@@ -59,9 +61,13 @@ def call_gemini_with_rotation(prompt: str) -> str:
                 print(f"❌ Clave {i+1} error: {error_type}")
             continue
     
-    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **Para respuestas inteligentes completas** se requiere configurar las API keys de Gemini AI.\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **La búsqueda funciona perfectamente**, solo falta la IA conversacional para un servicio completo."
+    return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n\n⚠️ **Para respuestas IA completas** configura las API keys."
 
-# ... el resto del código de build_prompt permanece igual ...
+# ... resto del código de build_prompt ...
+
+
+
+
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
