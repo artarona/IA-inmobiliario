@@ -2,26 +2,34 @@ import os
 import google.generativeai as genai
 from typing import Optional, Dict, Any, List
 
-# Importar configuración
-try:
-    from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
-except ImportError:
-    # Valores por defecto si config.py no existe
-    API_KEYS = os.environ.get("GEMINI_API_KEYS", "").split(",") if os.environ.get("GEMINI_API_KEYS") else []
-    ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
-    MODEL = os.environ.get("WORKING_MODEL", "gemini-pro")
+# Cargar API keys desde variables de entorno de Render
+API_KEYS = [
+    os.environ.get("GEMINI_API_KEY_1", "").strip(),
+    os.environ.get("GEMINI_API_KEY_2", "").strip(), 
+    os.environ.get("GEMINI_API_KEY_3", "").strip()
+]
+# Filtrar solo las claves no vacías
+API_KEYS = [key for key in API_KEYS if key]
+
+ENDPOINT = os.environ.get("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1/models/")
+MODEL = os.environ.get("WORKING_MODEL", "gemini-2.0-flash-001")
 
 def call_gemini_with_rotation(prompt: str) -> str:
     """Función para llamar a Gemini API con rotación de claves"""
-    if not API_KEYS or len([k for k in API_KEYS if k.strip()]) == 0:
+    print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
+    print(f"🔧 Modelo: {MODEL}")
+    print(f"🔑 Claves disponibles: {len(API_KEYS)}")
+    
+    if not API_KEYS:
         print("⚠️ No hay API keys configuradas, usando modo básico")
-        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!""
+        return "🤖 **Dante Propiedades - Modo Básico Activo**\n\n¡Hola! Estoy funcionando correctamente en modo básico.\n\n**✅ Sistema activo:**\n• Búsqueda de propiedades\n• Filtros por barrio, precio, tipo\n• Base de datos completa\n\n**⚠️ Para activar modo IA completo:**\nConfigurá variables de entorno:\n• GEMINI_API_KEY_1\n• GEMINI_API_KEY_2\n• GEMINI_API_KEY_3\n\n**Mientras tanto:**\n1. Escribí tu búsqueda\n2. Encontraré propiedades que coincidan\n3. Refiná con filtros según necesidad\n\n🏠 **¡La búsqueda de propiedades funciona al 100%!**"
     
     for i, key in enumerate(API_KEYS):
         if not key.strip():
             continue
             
         try:
+            print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
             genai.configure(api_key=key.strip())
             model = genai.GenerativeModel(MODEL)
             
@@ -38,6 +46,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
                 raise Exception("Respuesta vacía de Gemini")
             
             answer = response.text.strip()
+            print(f"✅ Éxito con clave {i+1}")
             return answer
 
         except Exception as e:
@@ -52,6 +61,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
     
     return "🤖 **Dante Propiedades**\n\n¡Hola! La aplicación está funcionando correctamente.\n\n**Sistema disponible:**\n✅ Búsqueda de propiedades\n✅ Filtros por barrio, precio, tipo\n✅ Base de datos cargada\n\n⚠️ **Para respuestas inteligentes completas** se requiere configurar las API keys de Gemini AI.\n\n**Cómo usar:**\n1. Escribí tu búsqueda (ej: \"departamento en palermo\")\n2. La app encontrará propiedades relevantes\n3. Usá los filtros para refinar resultados\n\n🏠 **La búsqueda funciona perfectamente**, solo falta la IA conversacional para un servicio completo."
 
+# ... el resto del código de build_prompt permanece igual ...
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
@@ -100,7 +110,7 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
         for i, r in enumerate(results[:6]):
             emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
             moneda = r.get('moneda_precio', 'USD')
-            precio = f"{moneda} {r['precio']:,0f}" if r['precio'] > 0 else "Consultar"
+            precio = f"{moneda} {r['precio']:,}" if r['precio'] > 0 else "Consultar"
             
             property_info = f"{emoji} **{r['titulo']}**\n"
             property_info += f"   • 📍 {r['barrio']}\n"
@@ -130,4 +140,24 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
     elif results is not None:
         return (
             f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
-            f
+            f"🔍 No encontré propiedades que coincidan exactamente con tu búsqueda, pero podemos ajustar los filtros.\n\n"
+            f"💡 **Sugerencias para mejorar la búsqueda:**\n"
+            f"- Probá con un rango de precio más amplio\n"
+            f"- Considerá barrios cercanos\n"
+            f"- Revisá otros tipos de propiedad\n\n"
+            f"¿Querés que ajuste algún parámetro en particular?"
+            + ("\n😊 Usá emojis para hacerlo más cercano." if whatsapp_tone else "")
+        )
+    
+    # Prompt para consultas generales
+    return (
+        f"{style_hint}\n\n"
+        f"El usuario pregunta: \"{user_text}\"\n\n"
+        f"Contexto inmobiliario:\n"
+        f"- Barrios disponibles: {', '.join(['Palermo', 'Recoleta', 'Belgrano', 'Caballito', 'Almagro', 'Villa Crespo', 'Colegiales', 'Nuñez'])}\n"
+        f"- Tipos: casa, departamento, PH, terreno, oficina\n"
+        f"- Operaciones: venta, alquiler\n"
+        f"- Precios en USD y ARS\n\n"
+        f"Respondé de forma útil y profesional, ofreciendo ayuda con búsquedas de propiedades."
+        + ("\nUsá un tono cercano con emojis apropiados." if whatsapp_tone else "")
+    )
