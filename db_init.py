@@ -6,7 +6,7 @@ import os
 
 HERE = os.path.dirname(__file__)
 DB = os.path.join(HERE, 'propiedades.db')
-JSON = os.path.join(HERE, 'properties.json')
+JSON = os.path.join(HERE, 'propiedades.json')
 
 with open(JSON, 'r', encoding='utf-8') as f:
     props = json.load(f)
