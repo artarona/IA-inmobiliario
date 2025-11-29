@@ -1,4 +1,5 @@
-"Backend para Dante Propiedades - Asistente Inmobiliario con IA"
+"""
+Backend para Dante Propiedades - Asistente Inmobiliario con IA
 """
 import os
 import re
