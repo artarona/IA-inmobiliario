@@ -7,6 +7,10 @@
     <title>Dante Propiedades — Asistente Inmobiliario Inteligente</title>
     <style>
         /* Reset y base */
+        :root {
+            --azul: #232deb;
+            --rojo: #ff0101;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -498,8 +502,8 @@
 
         .btn-imagenes {
             padding: 8px 16px;
-            background: #28a745;
-            color: white;
+            background: var(--rojo);
+            color:var(--azul);
             border-radius: 8px;
             cursor: pointer;
             border: none;
@@ -508,7 +512,7 @@
             transition: background 0.3s ease;
         }
         .btn-imagenes:hover {
-            background: #218838;
+            background: var(--azul);
         }
         
         /* Estilos para el modal de imágenes */
