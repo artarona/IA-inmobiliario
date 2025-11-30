@@ -7,19 +7,53 @@ DB_PATH = "dante_properties.db"
 LOG_PATH = "conversation_logs.db"
 
 
+import sqlite3
+import os
+import json
+from typing import List, Dict, Any, Optional
+
+# ✅ USAR RUTA PERSISTENTE EN RENDER
+DB_PATH = os.path.join(os.getcwd(), "instance", "dante_properties.db")
+LOG_PATH = os.path.join(os.getcwd(), "instance", "conversation_logs.db")
+
+# Crear directorio instance si no existe
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def initialize_databases():
-    """Inicializa las bases de datos cargando propiedades desde JSON"""
+    """Inicializa las bases de datos solo si no existen"""
     try:
-        print("🔄 INICIALIZANDO BD CARGANDO DESDE JSON...")
+        print(f"🔄 INICIALIZANDO BD EN: {DB_PATH}")
         
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             
-            # ELIMINAR tabla existente para forzar recreación
+            # ✅ VERIFICAR SI LA TABLA EXISTE ANTES DE RECREAR
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='properties'")
+            tabla_existe = cursor.fetchone()
+            
+            if tabla_existe:
+                print("✅ Tabla 'properties' ya existe, verificando datos...")
+                cursor.execute("SELECT COUNT(*) FROM properties")
+                count = cursor.fetchone()[0]
+                print(f"   📊 Propiedades en BD: {count}")
+                
+                # Verificar si hay propiedades de alquiler
+                cursor.execute("SELECT COUNT(*) FROM properties WHERE operacion = 'alquiler'")
+                count_alquiler = cursor.fetchone()[0]
+                print(f"   🏠 Propiedades de alquiler: {count_alquiler}")
+                
+                if count_alquiler > 0:
+                    print("✅ BD ya tiene propiedades de alquiler, no es necesario recrear")
+                    return
+                else:
+                    print("⚠️ BD no tiene propiedades de alquiler, recargando datos...")
+            else:
+                print("🚨 Tabla 'properties' no existe, creando...")
+            
+            # Solo recrear si es necesario
             cursor.execute("DROP TABLE IF EXISTS properties")
             
-            # CREAR tabla con esquema completo
+            # CREAR tabla (código existente)
             cursor.execute('''
                 CREATE TABLE properties (
                     id_temporal TEXT PRIMARY KEY,
@@ -52,14 +86,14 @@ def initialize_databases():
                 )
             ''')
             
-            # ✅ CARGAR PROPIEDADES DESDE ARCHIVO JSON
+            # Cargar propiedades desde JSON
             propiedades = cargar_propiedades_desde_json()
             
             if not propiedades:
-                print("⚠️ No se pudieron cargar propiedades desde JSON, usando datos de ejemplo")
-                propiedades = obtener_propiedades_ejemplo()
+                print("❌ No se pudieron cargar propiedades desde JSON")
+                return
             
-            # Insertar propiedades en la base de datos
+            # Insertar propiedades
             for prop in propiedades:
                 try:
                     cursor.execute('''
@@ -79,7 +113,6 @@ def initialize_databases():
                         prop.get('aire_acondicionado'), prop.get('moneda_precio', 'USD'),
                         prop.get('moneda_expensas', 'ARS')
                     ))
-                    print(f"✅ Propiedad cargada: {prop['titulo']}")
                 except Exception as e:
                     print(f"⚠️ Error cargando propiedad {prop.get('titulo', 'N/A')}: {e}")
             
@@ -90,11 +123,10 @@ def initialize_databases():
         print(f"❌ Error crítico inicializando base de datos: {e}")
 
 
-
 def cargar_propiedades_desde_json():
     """Carga propiedades desde el archivo propiedades.json"""
     try:
-        json_path = "propiedades.json"  # ✅ CAMBIADO de properties.json a propiedades.json
+        json_path = "propiedades.json"  # ✅ 
         
         if not os.path.exists(json_path):
             print(f"❌ Archivo {json_path} no encontrado")
