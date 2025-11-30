@@ -607,103 +607,105 @@
         </div>
     </div>
 
-    <script>
-        // ========================================
-        // CONFIGURACIÓN DEL BACKEND - CORREGIDA
-        // ========================================
-        const API_BASE_URL = "https://ia-inmobiliario.onrender.com";
-        const CHAT_URL = `${API_BASE_URL}/chat`;
-        const FILTERS_URL = `${API_BASE_URL}/filters`;
-        const STATUS_URL = `${API_BASE_URL}/status`;
+ <script>
+    // ========================================
+    // CONFIGURACIÓN DEL BACKEND - CORREGIDA
+    // ========================================
+    const API_BASE_URL = "https://ia-inmobiliario.onrender.com";
+    const CHAT_URL = `${API_BASE_URL}/chat`;
+    const FILTERS_URL = `${API_BASE_URL}/filters`;
+    const STATUS_URL = `${API_BASE_URL}/status`;
+    
+    // Variables globales - se inicializarán después de DOMContentLoaded
+    let chatBox;
+    let input;
+    let button;
+    let typingIndicator;
+    let statusText;
+
+    let conversacionActual = [];
+    let filtrosDinamicos = {
+        operaciones: [],
+        tipos: [],
+        barrios: []
+    };
+
+    // Contexto para seguimiento de conversación
+    let contextoActual = {
+        tipo: null,
+        resultados: [],
+        propiedad_focus: null,
+        filtros_usados: {},
+        timestamp: null
+    };
+
+    // ========================================
+    // FUNCIONES DE FILTROS DINÁMICOS
+    // ========================================
+
+    // Función para cargar filtros dinámicos
+    async function cargarFiltrosDinamicos() {
+        const loadingElement = document.getElementById('filtersLoading');
         
-        const chatBox = document.getElementById('chatBox');
-        const input = document.getElementById('userInput');
-        const button = document.getElementById('sendBtn');
-        const typingIndicator = document.getElementById('typingIndicator');
-        const statusText = document.getElementById('statusText');
-
-        let conversacionActual = [];
-        let filtrosDinamicos = {
-            operaciones: [],
-            tipos: [],
-            barrios: []
-        };
-
-        // Contexto para seguimiento de conversación
-        let contextoActual = {
-            tipo: null,
-            resultados: [],
-            propiedad_focus: null,
-            filtros_usados: {},
-            timestamp: null
-        };
-
-        // ========================================
-        // FUNCIONES DE FILTROS DINÁMICOS
-        // ========================================
-
-        // Función para cargar filtros dinámicos
-        async function cargarFiltrosDinamicos() {
-            const loadingElement = document.getElementById('filtersLoading');
+        try {
+            console.log('🔄 Cargando filtros dinámicos desde:', FILTERS_URL);
+            loadingElement.innerHTML = '<small>🔄 Cargando filtros...</small>';
             
-            try {
-                console.log('🔄 Cargando filtros dinámicos desde:', FILTERS_URL);
-                loadingElement.innerHTML = '<small>🔄 Cargando filtros...</small>';
-                
-                const response = await fetch(FILTERS_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('📦 Datos recibidos del backend:', data);
-                
-                // Validar y procesar datos
-                if (data.operaciones && data.tipos && data.barrios) {
-                    filtrosDinamicos = {
-                        operaciones: data.operaciones.filter(op => op && op.trim()),
-                        tipos: data.tipos.filter(tipo => tipo && tipo.trim()),
-                        barrios: data.barrios.filter(barrio => barrio && barrio.trim())
-                    };
-                    
-                    console.log('✅ Filtros procesados:', filtrosDinamicos);
-                    actualizarSelectoresFiltros();
-                    loadingElement.innerHTML = '<small>✅ Filtros cargados</small>';
-                    
-                    setTimeout(() => {
-                        loadingElement.innerHTML = '';
-                    }, 2000);
-                    
-                } else {
-                    throw new Error('Estructura de datos inválida');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error cargando filtros:', error);
-                
-                // Valores por defecto
+            const response = await fetch(FILTERS_URL);
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Datos recibidos del backend:', data);
+            
+            // Validar y procesar datos
+            if (data.operaciones && data.tipos && data.barrios) {
                 filtrosDinamicos = {
-                    operaciones: ["alquiler", "venta"],
-                    tipos: ["casa", "departamento", "ph", "terreno", "oficina", "casaquinta"],
-                    barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+                    operaciones: data.operaciones.filter(op => op && op.trim()),
+                    tipos: data.tipos.filter(tipo => tipo && tipo.trim()),
+                    barrios: data.barrios.filter(barrio => barrio && barrio.trim())
                 };
                 
+                console.log('✅ Filtros procesados:', filtrosDinamicos);
                 actualizarSelectoresFiltros();
-                loadingElement.innerHTML = '<small>⚠️ Usando filtros predeterminados</small>';
+                loadingElement.innerHTML = '<small>✅ Filtros cargados</small>';
                 
                 setTimeout(() => {
                     loadingElement.innerHTML = '';
-                }, 3000);
+                }, 2000);
+                
+            } else {
+                throw new Error('Estructura de datos inválida');
             }
-        }
-
-        // Función para actualizar los selectores
-        function actualizarSelectoresFiltros() {
-            console.log('🔄 Actualizando selectores...');
             
-            // Operaciones
-            const selectOperacion = document.getElementById('operacion');
+        } catch (error) {
+            console.error('❌ Error cargando filtros:', error);
+            
+            // Valores por defecto
+            filtrosDinamicos = {
+                operaciones: ["alquiler", "venta"],
+                tipos: ["casa", "departamento", "ph", "terreno", "oficina", "casaquinta"],
+                barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+            };
+            
+            actualizarSelectoresFiltros();
+            loadingElement.innerHTML = '<small>⚠️ Usando filtros predeterminados</small>';
+            
+            setTimeout(() => {
+                loadingElement.innerHTML = '';
+            }, 3000);
+        }
+    }
+
+    // Función para actualizar los selectores
+    function actualizarSelectoresFiltros() {
+        console.log('🔄 Actualizando selectores...');
+        
+        // Operaciones
+        const selectOperacion = document.getElementById('operacion');
+        if (selectOperacion) {
             selectOperacion.innerHTML = '<option value="">Todas las operaciones</option>';
             
             filtrosDinamicos.operaciones.forEach(operacion => {
@@ -712,9 +714,11 @@
                 option.textContent = operacion.charAt(0).toUpperCase() + operacion.slice(1);
                 selectOperacion.appendChild(option);
             });
+        }
 
-            // Barrios
-            const selectBarrio = document.getElementById('barrio');
+        // Barrios
+        const selectBarrio = document.getElementById('barrio');
+        if (selectBarrio) {
             selectBarrio.innerHTML = '<option value="">Todos los barrios</option>';
             
             filtrosDinamicos.barrios.forEach(barrio => {
@@ -723,9 +727,11 @@
                 option.textContent = barrio;
                 selectBarrio.appendChild(option);
             });
+        }
 
-            // Tipos
-            const selectTipo = document.getElementById('tipo');
+        // Tipos
+        const selectTipo = document.getElementById('tipo');
+        if (selectTipo) {
             selectTipo.innerHTML = '<option value="">Todos los tipos</option>';
             
             filtrosDinamicos.tipos.forEach(tipo => {
@@ -734,364 +740,405 @@
                 option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
                 selectTipo.appendChild(option);
             });
-
-            console.log('✅ Selectores actualizados');
         }
 
-        // ========================================
-        // FUNCIONES PRINCIPALES
-        // ========================================
+        console.log('✅ Selectores actualizados');
+    }
 
-        // Función para actualizar el contexto
-        function actualizarContexto(resultados, filtros = {}, tipo = 'busqueda') {
-            contextoActual = {
-                tipo: tipo,
-                resultados: resultados || [],
-                propiedad_focus: resultados && resultados.length === 1 ? resultados[0] : null,
-                filtros_usados: filtros,
-                timestamp: new Date().toISOString()
-            };
-            console.log('🔍 Contexto actualizado:', contextoActual);
+    // ========================================
+    // FUNCIONES PRINCIPALES - CORREGIDAS
+    // ========================================
+
+    // Función para actualizar el contexto
+    function actualizarContexto(resultados, filtros = {}, tipo = 'busqueda') {
+        contextoActual = {
+            tipo: tipo,
+            resultados: resultados || [],
+            propiedad_focus: resultados && resultados.length === 1 ? resultados[0] : null,
+            filtros_usados: filtros,
+            timestamp: new Date().toISOString()
+        };
+        console.log('🔍 Contexto actualizado:', contextoActual);
+    }
+
+    // Función para detectar si es una pregunta de seguimiento
+    function esPreguntaSeguimiento(mensaje) {
+        if (!contextoActual.resultados || contextoActual.resultados.length === 0) {
+            return false;
         }
+        
+        const mensajeLower = mensaje.toLowerCase().trim();
+        
+        const palabrasSeguimiento = [
+            'más', 'mas', 'detalles', 'brindar', 'brindame',
+            'características', 'caracteristicas', 'información', 'informacion',
+            'precio', 'ubicación', 'ubicacion', 'contacto', 'fotos', 'imágenes', 'imagenes',
+            'este', 'esta', 'ese', 'esa', 'este', 'esta',
+            'primero', 'primera', 'segundo', 'segunda', 'tercero', 'tercera',
+            'el primero', 'el segundo', 'la primera', 'la segunda',
+            'dime', 'cuéntame', 'cuentame', 'háblame', 'hablame', 'decime',
+            'me interesa', 'quiero saber', 'necesito saber'
+        ];
+        
+        const patronesSeguimiento = [
+            /(más|mas)\s+(información|informacion|detalles|data|info)/i,
+            /(brindar|brindame|proporcionar|proporcioname)\s+(más|mas|detalles|información|informacion)/i,
+            /(dime|cuéntame|cuentame|háblame|hablame|decime)\s+(más|mas|algo)/i,
+            /(el|la)\s+(primero|primera|segundo|segunda|tercero|tercera)/i,
+            /(este|esta|ese|esa)\s+(propiedad|departamento|casa|ph|terreno|inmueble)/i,
+            /(tiene|tienen|tiene|tienen)\s+(fotos|imágenes|imagenes|contacto|información|informacion)/i,
+            /(me interesa|quiero saber|necesito saber)\s+(más|mas)/i,
+            /(más|mas)\s+(sobre|acerca|de)/i,
+            /(detalles|información|informacion)\s+(sobre|acerca|de)/i
+        ];
+        
+        const tienePalabraClave = palabrasSeguimiento.some(palabra => 
+            mensajeLower.includes(palabra)
+        );
+        
+        const tienePatron = patronesSeguimiento.some(patron => 
+            patron.test(mensajeLower)
+        );
+        
+        const esMensajeCorto = mensajeLower.split(' ').length <= 5;
+        
+        const esSeguimiento = tienePalabraClave || tienePatron || esMensajeCorto;
+        
+        console.log('🔍 Análisis de seguimiento:', {
+            mensaje: mensajeLower,
+            tienePalabraClave,
+            tienePatron, 
+            esMensajeCorto,
+            esSeguimiento
+        });
+        
+        return esSeguimiento;
+    }
 
-        // Función para detectar si es una pregunta de seguimiento
-        function esPreguntaSeguimiento(mensaje) {
-            if (!contextoActual.resultados || contextoActual.resultados.length === 0) {
-                return false;
-            }
-            
-            const mensajeLower = mensaje.toLowerCase().trim();
-            
-            const palabrasSeguimiento = [
-                'más', 'mas', 'detalles', 'brindar', 'brindame',
-                'características', 'caracteristicas', 'información', 'informacion',
-                'precio', 'ubicación', 'ubicacion', 'contacto', 'fotos', 'imágenes', 'imagenes',
-                'este', 'esta', 'ese', 'esa', 'este', 'esta',
-                'primero', 'primera', 'segundo', 'segunda', 'tercero', 'tercera',
-                'el primero', 'el segundo', 'la primera', 'la segunda',
-                'dime', 'cuéntame', 'cuentame', 'háblame', 'hablame', 'decime',
-                'me interesa', 'quiero saber', 'necesito saber'
-            ];
-            
-            const patronesSeguimiento = [
-                /(más|mas)\s+(información|informacion|detalles|data|info)/i,
-                /(brindar|brindame|proporcionar|proporcioname)\s+(más|mas|detalles|información|informacion)/i,
-                /(dime|cuéntame|cuentame|háblame|hablame|decime)\s+(más|mas|algo)/i,
-                /(el|la)\s+(primero|primera|segundo|segunda|tercero|tercera)/i,
-                /(este|esta|ese|esa)\s+(propiedad|departamento|casa|ph|terreno|inmueble)/i,
-                /(tiene|tienen|tiene|tienen)\s+(fotos|imágenes|imagenes|contacto|información|informacion)/i,
-                /(me interesa|quiero saber|necesito saber)\s+(más|mas)/i,
-                /(más|mas)\s+(sobre|acerca|de)/i,
-                /(detalles|información|informacion)\s+(sobre|acerca|de)/i
-            ];
-            
-            const tienePalabraClave = palabrasSeguimiento.some(palabra => 
-                mensajeLower.includes(palabra)
-            );
-            
-            const tienePatron = patronesSeguimiento.some(patron => 
-                patron.test(mensajeLower)
-            );
-            
-            const esMensajeCorto = mensajeLower.split(' ').length <= 5;
-            
-            const esSeguimiento = tienePalabraClave || tienePatron || esMensajeCorto;
-            
-            console.log('🔍 Análisis de seguimiento:', {
-                mensaje: mensajeLower,
-                tienePalabraClave,
-                tienePatron, 
-                esMensajeCorto,
-                esSeguimiento
-            });
-            
-            return esSeguimiento;
+    function addMessage(text, from = "bot") {
+        if (!chatBox) {
+            console.error('❌ chatBox no está disponible');
+            return;
         }
-
-        function addMessage(text, from = "bot") {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${from === 'user' ? 'msg-user' : 'msg-bot'}`;
-            
-            if (from === 'bot') {
-                messageDiv.innerHTML = `<b>ASISTENTE VIRTUAL</b>${text}`;
-            } else {
-                messageDiv.textContent = text;
-            }
-            
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            
-            conversacionActual.push({
-                text: text,
-                from: from,
-                timestamp: new Date().toISOString()
-            });
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${from === 'user' ? 'msg-user' : 'msg-bot'}`;
+        
+        if (from === 'bot') {
+            messageDiv.innerHTML = `<b>ASISTENTE VIRTUAL</b>${text}`;
+        } else {
+            messageDiv.textContent = text;
         }
+        
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        conversacionActual.push({
+            text: text,
+            from: from,
+            timestamp: new Date().toISOString()
+        });
+    }
 
-        function showTypingIndicator() {
+    function showTypingIndicator() {
+        if (typingIndicator) {
             typingIndicator.style.display = 'flex';
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+    }
 
-        function hideTypingIndicator() {
+    function hideTypingIndicator() {
+        if (typingIndicator) {
             typingIndicator.style.display = 'none';
         }
+    }
 
-        function resetearChat() {
-            if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
+    function resetearChat() {
+        if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
+            if (chatBox) {
                 chatBox.innerHTML = '';
-                conversacionActual = [];
-                
-                contextoActual = {
-                    tipo: null,
-                    resultados: [],
-                    propiedad_focus: null,
-                    filtros_usados: {},
-                    timestamp: null
-                };
-                
-                limpiarFiltros();
-                cargarFiltrosDinamicos();
-                
-                setTimeout(() => {
-                    addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
-                }, 300);
             }
+            conversacionActual = [];
+            
+            contextoActual = {
+                tipo: null,
+                resultados: [],
+                propiedad_focus: null,
+                filtros_usados: {},
+                timestamp: null
+            };
+            
+            limpiarFiltros();
+            cargarFiltrosDinamicos();
+            
+            setTimeout(() => {
+                addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
+            }, 300);
+        }
+    }
+
+    function obtenerFiltrosSeleccionados() {
+        const operacion = document.getElementById('operacion')?.value || '';
+        const barrio = document.getElementById('barrio')?.value || '';
+        const tipo = document.getElementById('tipo')?.value || '';
+        const ambientes = document.getElementById('ambientes')?.value || '';
+        const precioMin = document.getElementById('precioMin')?.value || '';
+        const precioMax = document.getElementById('precioMax')?.value || '';
+        const metrosMin = document.getElementById('metrosMin')?.value || '';
+        const metrosMax = document.getElementById('metrosMax')?.value || '';
+
+        const filtros = {};
+        
+        if (operacion) filtros.operacion = operacion;
+        if (barrio) filtros.neighborhood = barrio;
+        if (tipo) filtros.tipo = tipo;
+        if (ambientes) filtros.min_rooms = parseInt(ambientes);
+        if (precioMin) filtros.min_price = parseFloat(precioMin);
+        if (precioMax) filtros.max_price = parseFloat(precioMax);
+        if (metrosMin) filtros.min_sqm = parseFloat(metrosMin);
+        if (metrosMax) filtros.max_sqm = parseFloat(metrosMax);
+
+        return filtros;
+    }
+
+    function formatearFiltrosParaMensaje(filtros) {
+        const partes = [];
+        
+        if (filtros.operacion) {
+            const operacionFormateada = filtros.operacion.charAt(0).toUpperCase() + filtros.operacion.slice(1);
+            partes.push(operacionFormateada);
+        }
+        
+        if (filtros.neighborhood) {
+            const barrioFormateado = filtros.neighborhood.split(' ')
+                .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+                .join(' ');
+            partes.push(`barrio ${barrioFormateado}`);
+        }
+        
+        if (filtros.tipo) {
+            const tipoFormateado = filtros.tipo.charAt(0).toUpperCase() + filtros.tipo.slice(1);
+            partes.push(`tipo ${tipoFormateado}`);
+        }
+        
+        if (filtros.min_rooms) {
+            partes.push(`mínimo ${filtros.min_rooms} ambientes`);
+        }
+        
+        if (filtros.min_price || filtros.max_price) {
+            let precio = 'precio';
+            if (filtros.min_price) precio += ` desde $${filtros.min_price.toLocaleString()}`;
+            if (filtros.max_price) precio += ` hasta $${filtros.max_price.toLocaleString()}`;
+            partes.push(precio);
+        }
+        
+        if (filtros.min_sqm || filtros.max_sqm) {
+            let metros = 'metros';
+            if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
+            if (filtros.max_sqm) metros += ` hasta ${filtros.max_sqm}m²`;
+            partes.push(metros);
+        }
+        
+        return partes.join(', ');
+    }
+
+    function aplicarFiltros() {
+        const filtros = obtenerFiltrosSeleccionados();
+        
+        if (Object.keys(filtros).length === 0) {
+            alert('Seleccioná al menos un filtro para buscar.');
+            return;
         }
 
-        function obtenerFiltrosSeleccionados() {
-            const operacion = document.getElementById('operacion').value;
-            const barrio = document.getElementById('barrio').value;
-            const tipo = document.getElementById('tipo').value;
-            const ambientes = document.getElementById('ambientes').value;
-            const precioMin = document.getElementById('precioMin').value;
-            const precioMax = document.getElementById('precioMax').value;
-            const metrosMin = document.getElementById('metrosMin').value;
-            const metrosMax = document.getElementById('metrosMax').value;
-
-            const filtros = {};
-            
-            if (operacion) filtros.operacion = operacion;
-            if (barrio) filtros.neighborhood = barrio;
-            if (tipo) filtros.tipo = tipo;
-            if (ambientes) filtros.min_rooms = parseInt(ambientes);
-            if (precioMin) filtros.min_price = parseFloat(precioMin);
-            if (precioMax) filtros.max_price = parseFloat(precioMax);
-            if (metrosMin) filtros.min_sqm = parseFloat(metrosMin);
-            if (metrosMax) filtros.max_sqm = parseFloat(metrosMax);
-
-            return filtros;
+        const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
+        
+        let mensajeNatural = `Buscar propiedades`;
+        if (descripcionFiltros) {
+            mensajeNatural += ` con ${descripcionFiltros}`;
         }
-
-        function formatearFiltrosParaMensaje(filtros) {
-            const partes = [];
-            
-            if (filtros.operacion) {
-                const operacionFormateada = filtros.operacion.charAt(0).toUpperCase() + filtros.operacion.slice(1);
-                partes.push(operacionFormateada);
-            }
-            
-            if (filtros.neighborhood) {
-                const barrioFormateado = filtros.neighborhood.split(' ')
-                    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
-                    .join(' ');
-                partes.push(`barrio ${barrioFormateado}`);
-            }
-            
-            if (filtros.tipo) {
-                const tipoFormateado = filtros.tipo.charAt(0).toUpperCase() + filtros.tipo.slice(1);
-                partes.push(`tipo ${tipoFormateado}`);
-            }
-            
-            if (filtros.min_rooms) {
-                partes.push(`mínimo ${filtros.min_rooms} ambientes`);
-            }
-            
-            if (filtros.min_price || filtros.max_price) {
-                let precio = 'precio';
-                if (filtros.min_price) precio += ` desde $${filtros.min_price.toLocaleString()}`;
-                if (filtros.max_price) precio += ` hasta $${filtros.max_price.toLocaleString()}`;
-                partes.push(precio);
-            }
-            
-            if (filtros.min_sqm || filtros.max_sqm) {
-                let metros = 'metros';
-                if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
-                if (filtros.max_sqm) metros += ` hasta ${filtros.max_sqm}m²`;
-                partes.push(metros);
-            }
-            
-            return partes.join(', ');
-        }
-
-        function aplicarFiltros() {
-            const filtros = obtenerFiltrosSeleccionados();
-            
-            if (Object.keys(filtros).length === 0) {
-                alert('Seleccioná al menos un filtro para buscar.');
-                return;
-            }
-
-            const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
-            
-            let mensajeNatural = `Buscar propiedades`;
-            if (descripcionFiltros) {
-                mensajeNatural += ` con ${descripcionFiltros}`;
-            }
-            
+        
+        if (input) {
             input.value = mensajeNatural;
-            send();
+        }
+        send();
+    }
+
+    function limpiarFiltros() {
+        const elementos = [
+            'operacion', 'barrio', 'tipo', 'ambientes', 
+            'precioMin', 'precioMax', 'metrosMin', 'metrosMax'
+        ];
+        
+        elementos.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.value = '';
+            }
+        });
+    }
+
+    async function send() {
+        if (!input || !button) return;
+        
+        let msg = input.value.trim();
+        const filtrosSeleccionados = obtenerFiltrosSeleccionados();
+        
+        if (!msg && Object.keys(filtrosSeleccionados).length > 0) {
+            const descripcionFiltros = formatearFiltrosParaMensaje(filtrosSeleccionados);
+            msg = `Buscar propiedades con ${descripcionFiltros}`;
+        }
+        
+        if (!msg) {
+            alert('Por favor, escribí tu consulta o seleccioná algún filtro.');
+            return;
         }
 
-        function limpiarFiltros() {
-            document.getElementById('operacion').value = '';
-            document.getElementById('barrio').value = '';
-            document.getElementById('tipo').value = '';
-            document.getElementById('ambientes').value = '';
-            document.getElementById('precioMin').value = '';
-            document.getElementById('precioMax').value = '';
-            document.getElementById('metrosMin').value = '';
-            document.getElementById('metrosMax').value = '';
-        }
+        const esSeguimiento = esPreguntaSeguimiento(msg);
+        console.log('🔍 DEBUG ENVÍO:', {
+            mensaje: msg,
+            esSeguimiento: esSeguimiento,
+            contextoResultados: contextoActual.resultados ? contextoActual.resultados.length : 0
+        });
+        
+        addMessage(msg, 'user');
+        input.value = '';
+        button.disabled = true;
+        
+        showTypingIndicator();
 
-        async function send() {
-            let msg = input.value.trim();
-            const filtrosSeleccionados = obtenerFiltrosSeleccionados();
-            
-            if (!msg && Object.keys(filtrosSeleccionados).length > 0) {
-                const descripcionFiltros = formatearFiltrosParaMensaje(filtrosSeleccionados);
-                msg = `Buscar propiedades con ${descripcionFiltros}`;
-            }
-            
-            if (!msg) {
-                alert('Por favor, escribí tu consulta o seleccioná algún filtro.');
-                return;
+        try {
+            const payload = {
+                message: msg,
+                channel: 'web',
+                filters: filtrosSeleccionados
+            };
+
+            if (esSeguimiento && contextoActual.resultados.length > 0) {
+                payload.contexto_anterior = contextoActual;
+                payload.es_seguimiento = true;
+                console.log('📤 Enviando contexto al backend:', contextoActual);
             }
 
-            const esSeguimiento = esPreguntaSeguimiento(msg);
-            console.log('🔍 DEBUG ENVÍO:', {
-                mensaje: msg,
-                esSeguimiento: esSeguimiento,
-                contextoResultados: contextoActual.resultados ? contextoActual.resultados.length : 0
+            const response = await fetch(CHAT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
-            
-            addMessage(msg, 'user');
-            input.value = '';
-            button.disabled = true;
-            
-            showTypingIndicator();
 
-            try {
-                const payload = {
-                    message: msg,
-                    channel: 'web',
-                    filters: filtrosSeleccionados
-                };
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
 
-                if (esSeguimiento && contextoActual.resultados.length > 0) {
-                    payload.contexto_anterior = contextoActual;
-                    payload.es_seguimiento = true;
-                    console.log('📤 Enviando contexto al backend:', contextoActual);
-                }
+            const data = await response.json();
+            console.log('✅ Respuesta completa:', data);
 
-                const response = await fetch(CHAT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Error ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log('✅ Respuesta completa:', data);
-
-                if (data.response) {
-                    let mensajeMejorado = data.response;
-                    
-                    if (data.search_performed && data.results_count !== null) {
-                        if (data.results_count > 0) {
-                            mensajeMejorado += `\n\n---\n**🎯 BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
-                            
-                            if (data.propiedades && data.propiedades.length > 0) {
-                                actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
-                            }
-
-                            if (!esSeguimiento) {
-                                mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento?"\n• "Contacto para la propiedad de $280,000"`;
-                            }
-                        } else {
-                            mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
-                            actualizarContexto([], {}, 'busqueda');
-                        }
-                    }
-                    
-                    addMessage(mensajeMejorado);
-                } else if (data.error) {
-                    addMessage(`⚠️ Error: ${data.error}`);
-                } else {
-                    addMessage('❌ Respuesta inesperada del servidor');
-                }
-
-                statusText.textContent = 'Conectado';
+            if (data.response) {
+                let mensajeMejorado = data.response;
                 
-            } catch (error) {
-                console.error('Error:', error);
-                addMessage('⚠️ No se pudo conectar con el servidor. Por favor, intentá nuevamente en unos momentos.');
+                if (data.search_performed && data.results_count !== null) {
+                    if (data.results_count > 0) {
+                        mensajeMejorado += `\n\n---\n**🎯 BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
+                        
+                        if (data.propiedades && data.propiedades.length > 0) {
+                            actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
+                        }
+
+                        if (!esSeguimiento) {
+                            mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento?"\n• "Contacto para la propiedad de $280,000"`;
+                        }
+                    } else {
+                        mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
+                        actualizarContexto([], {}, 'busqueda');
+                    }
+                }
+                
+                addMessage(mensajeMejorado);
+            } else if (data.error) {
+                addMessage(`⚠️ Error: ${data.error}`);
+            } else {
+                addMessage('❌ Respuesta inesperada del servidor');
+            }
+
+            if (statusText) {
+                statusText.textContent = 'Conectado';
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage('⚠️ No se pudo conectar con el servidor. Por favor, intentá nuevamente en unos momentos.');
+            if (statusText) {
                 statusText.textContent = 'Error de conexión';
-            } finally {
-                hideTypingIndicator();
-                button.disabled = false;
+            }
+        } finally {
+            hideTypingIndicator();
+            button.disabled = false;
+            if (input) {
                 input.focus();
             }
         }
+    }
 
-        // ========================================
-        // INICIALIZACIÓN
-        // ========================================
+    // ========================================
+    // INICIALIZACIÓN CORREGIDA
+    // ========================================
 
-        // Event listeners
-        button.addEventListener('click', send);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                send();
-            }
-        });
-
-        // Auto-focus en el input
-        input.focus();
-
-        // Verificar estado del servidor
-        async function checkServerStatus() {
-            try {
-                const response = await fetch(STATUS_URL);
-                if (response.ok) {
-                    statusText.textContent = 'Conectado';
-                } else {
-                    statusText.textContent = 'Servidor inactivo';
+    // Inicializar aplicación cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicializando aplicación...');
+        
+        // Inicializar referencias a elementos DOM
+        chatBox = document.getElementById('chatBox');
+        input = document.getElementById('userInput');
+        button = document.getElementById('sendBtn');
+        typingIndicator = document.getElementById('typingIndicator');
+        statusText = document.getElementById('statusText');
+        
+        // Verificar que todos los elementos existan
+        if (!chatBox) console.error('❌ No se encontró chatBox');
+        if (!input) console.error('❌ No se encontró userInput');
+        if (!button) console.error('❌ No se encontró sendBtn');
+        if (!typingIndicator) console.error('❌ No se encontró typingIndicator');
+        if (!statusText) console.error('❌ No se encontró statusText');
+        
+        // Configurar event listeners
+        if (button) {
+            button.addEventListener('click', send);
+        }
+        
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    send();
                 }
-            } catch (error) {
+            });
+            input.focus();
+        }
+        
+        // Inicializar componentes
+        cargarFiltrosDinamicos();
+        checkServerStatus();
+    });
+
+    // Verificar estado del servidor
+    async function checkServerStatus() {
+        try {
+            const response = await fetch(STATUS_URL);
+            if (response.ok && statusText) {
+                statusText.textContent = 'Conectado';
+            } else if (statusText) {
+                statusText.textContent = 'Servidor inactivo';
+            }
+        } catch (error) {
+            if (statusText) {
                 statusText.textContent = 'Sin conexión';
             }
         }
+    }
 
-        // Inicializar aplicación
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Inicializando aplicación...');
-            cargarFiltrosDinamicos();
-            checkServerStatus();
-            
-            // Mensaje de bienvenida
-            // setTimeout(() => {
-            //    addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
-            //}, 500); -->
-        });
-
-        setInterval(checkServerStatus, 30000);
-    </script>
+    setInterval(checkServerStatus, 30000);
+</script>
 </body>
 </html>
