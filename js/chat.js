@@ -9,6 +9,37 @@ const typingIndicator = document.getElementById('typingIndicator');
 const statusText = document.getElementById('statusText');
 const resetChatBtn = document.getElementById('resetChatBtn');
 
+// Al inicio del archivo, después de las importaciones
+let conversacionInicialMostrada = false;
+
+export async function enviarMensaje() {
+    let msg = userInput.value.trim();
+    if (!msg) return alert('Por favor, escribí tu consulta.');
+
+    // ✅ MOSTRAR BIENVENIDA SOLO LA PRIMERA VEZ
+    if (!conversacionInicialMostrada) {
+        addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
+        conversacionInicialMostrada = true;
+    }
+
+    addMessage(msg, 'user');
+    userInput.value = '';
+    sendBtn.disabled = true;
+    showTypingIndicator();
+
+    // ... resto del código igual ...
+}
+
+export function resetearChat() {
+    if (confirm('¿Querés empezar una nueva conversación?')) {
+        chatBox.innerHTML = '';
+        conversacionActual = [];
+        conversacionInicialMostrada = false; // ✅ Resetear bandera
+        limpiarFiltros();
+        // NO agregar mensaje de bienvenida aquí - se agregará automáticamente en el próximo enviarMensaje()
+    }
+}
+
 let conversacionActual = [];
 
 export function addMessage(text, from = "bot") {
