@@ -9,38 +9,8 @@ const typingIndicator = document.getElementById('typingIndicator');
 const statusText = document.getElementById('statusText');
 const resetChatBtn = document.getElementById('resetChatBtn');
 
-// Al inicio del archivo, después de las importaciones
-let conversacionInicialMostrada = false;
-
-export async function enviarMensaje() {
-    let msg = userInput.value.trim();
-    if (!msg) return alert('Por favor, escribí tu consulta.');
-
-    // ✅ MOSTRAR BIENVENIDA SOLO LA PRIMERA VEZ
-    if (!conversacionInicialMostrada) {
-        addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
-        conversacionInicialMostrada = true;
-    }
-
-    addMessage(msg, 'user');
-    userInput.value = '';
-    sendBtn.disabled = true;
-    showTypingIndicator();
-
-    // ... resto del código igual ...
-}
-
-export function resetearChat() {
-    if (confirm('¿Querés empezar una nueva conversación?')) {
-        chatBox.innerHTML = '';
-        conversacionActual = [];
-        conversacionInicialMostrada = false; // ✅ Resetear bandera
-        limpiarFiltros();
-        // NO agregar mensaje de bienvenida aquí - se agregará automáticamente en el próximo enviarMensaje()
-    }
-}
-
 let conversacionActual = [];
+let conversacionInicialMostrada = false; // ✅ SOLO UNA VARIABLE
 
 export function addMessage(text, from = "bot") {
     const messageDiv = document.createElement('div');
@@ -60,9 +30,16 @@ function hideTypingIndicator() {
     typingIndicator.style.display = 'none';
 }
 
+// ✅ SOLO UNA FUNCIÓN enviarMensaje - ELIMINAR LA DUPLICADA
 export async function enviarMensaje() {
     let msg = userInput.value.trim();
     if (!msg) return alert('Por favor, escribí tu consulta.');
+
+    // ✅ MOSTRAR BIENVENIDA SOLO LA PRIMERA VEZ
+    if (!conversacionInicialMostrada) {
+        addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
+        conversacionInicialMostrada = true;
+    }
 
     addMessage(msg, 'user');
     userInput.value = '';
@@ -70,12 +47,12 @@ export async function enviarMensaje() {
     showTypingIndicator();
 
     const filtros = obtenerFiltrosSeleccionados();
-    if (Object.keys(filtros).length === 0) limpiarFiltros(); // 🔄 Limpieza automática
+    if (Object.keys(filtros).length === 0) limpiarFiltros();
 
     try {
         const data = await enviarConsultaAlBackend(msg, filtros);
         
-        // ✅ AGREGAR DIAGNÓSTICO AQUÍ
+        // ✅ DIAGNÓSTICO
         console.log("🎯 ===== DIAGNÓSTICO PROPIEDADES =====");
         console.log("📦 RESPUESTA COMPLETA:", data);
         console.log("🏠 PROPIEDADES:", data.propiedades);
@@ -89,9 +66,7 @@ export async function enviarMensaje() {
                 console.log(`   ${index + 1}. ${prop.titulo} - ${prop.operacion} - $${prop.precio}`);
             });
             
-            // 🚀 ACTIVAR VISUALIZACIÓN DE PROPIEDADES
             console.log("🚀 ACTIVANDO VISUALIZACIÓN DE PROPIEDADES");
-            // Aquí deberías llamar a la función que muestra las propiedades
             mostrarPropiedadesEnInterfaz(data.propiedades);
         } else {
             console.log("❌ NO HAY PROPIEDADES PARA MOSTRAR");
@@ -107,22 +82,23 @@ export async function enviarMensaje() {
         addMessage(demo ? demo.response + '\n\n---\n**🔧 Modo demo**' : '🔍 Consulta en modo demostración');
         statusText.textContent = 'Modo Demo';
     } finally {
-        conversacionActual = []; // 🧼 Reset de contexto
+        conversacionActual = [];
         hideTypingIndicator();
         sendBtn.disabled = false;
         userInput.focus();
     }
 }
 
-
 export function resetearChat() {
     if (confirm('¿Querés empezar una nueva conversación?')) {
         chatBox.innerHTML = '';
         conversacionActual = [];
+        conversacionInicialMostrada = false; // ✅ Resetear bandera
         limpiarFiltros();
-        addMessage('¡Perfecto! Empezamos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
+        // NO agregar mensaje de bienvenida aquí
     }
 }
+
 // ✅ FUNCIÓN PARA MOSTRAR PROPIEDADES EN LA INTERFAZ
 function mostrarPropiedadesEnInterfaz(propiedades) {
     console.log("🖥️ MOSTRANDO PROPIEDADES EN INTERFAZ");
@@ -138,7 +114,6 @@ function mostrarPropiedadesEnInterfaz(propiedades) {
     
     propiedadesContainer.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">🏠 Propiedades Encontradas</h3>';
     
-    // ✅ EMOJIS DINÁMICOS POR TIPO
     const propertyEmojis = {
         'casa': '🏠',
         'departamento': '🏢', 
@@ -157,7 +132,7 @@ function mostrarPropiedadesEnInterfaz(propiedades) {
         propElement.className = 'propiedad-card';
         propElement.innerHTML = `
             <div class="propiedad-header">
-                <h4>${index + 1}. ${emoji} ${prop.titulo}</h4>
+                <h4><span class="numero-propiedad">${index + 1}.</span> ${emoji} ${prop.titulo}</h4>
                 <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
             </div>
             <div class="propiedad-info">
