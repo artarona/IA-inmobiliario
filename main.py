@@ -190,17 +190,26 @@ async def chat(request: ChatRequest):
         style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp." if channel == "whatsapp" else "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
         
         # ✅ EVITAR DOBLE BIENVENIDA - Detectar si es un saludo inicial
+        # En el endpoint /chat, modificar esta parte:
         palabras_bienvenida = ['hola', 'hi', 'hello', 'buenas', 'empezar', 'inicio', 'ayuda']
         es_saludo_inicial = any(palabra in text_lower for palabra in palabras_bienvenida) and not contexto_anterior
-        
+
         if es_saludo_inicial:
-            print("🎯 DETECTADO: Saludo inicial - enviando bienvenida simple")
-            answer = "¡Hola! 👋 Soy tu asistente de Dante Propiedades. ¿En qué puedo ayudarte a encontrar hoy?"
+            print("🎯 DETECTADO: Saludo inicial - enviando bienvenida mejorada")
+            answer = """¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
+
+        Te ayudo a encontrar la propiedad ideal. Podés:
+        • Usar los filtros a la izquierda para búsquedas específicas
+        • Contarme directamente qué estás buscando
+        • Preguntarme sobre propiedades que veas
+
+        ¿En qué tipo de propiedad estás interesado hoy?"""
         else:
             # Procesamiento normal con IA
             prompt = build_prompt(user_text, results, filters, channel, f"{style_hint}\n{contexto_dinamico}\n{contexto_historial}")
             metrics.increment_gemini_calls()
             answer = call_gemini_with_rotation(prompt)
+                
         
         response_time = time.time() - start_time
         log_conversation(user_text, answer, channel, response_time, search_performed, len(results) if results else 0)

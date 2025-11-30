@@ -575,16 +575,15 @@
                 </div>
                 <button class="reset-chat" onclick="resetearChat()">Nueva Consulta</button>
             </div>
-
-            <div class="chat-box" id="chatBox">
-                <!-- Mensaje de bienvenida -->
+            <!-- Mensaje de bienvenida -->
+            <!-- <div class="chat-box" id="chatBox">
                 <div class="message msg-bot">
                     <b>ASISTENTE VIRTUAL</b>
                     ¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
                     Usá los filtros a la izquierda para buscar propiedades específicas 
                     o contame directamente qué estás buscando.
                 </div>
-            </div>
+            </div> -->
 
             <!-- Indicador de typing -->
             <div class="typing-indicator" id="typingIndicator">
@@ -1087,9 +1086,9 @@
             checkServerStatus();
             
             // Mensaje de bienvenida
-            setTimeout(() => {
-                addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
-            }, 500);
+            // setTimeout(() => {
+            //    addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
+            //}, 500); -->
         });
 
         setInterval(checkServerStatus, 30000);
