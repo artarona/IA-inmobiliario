@@ -190,22 +190,42 @@
             background: #f5f5f5;
             }
 
-            .chat-logo {
+        .chat-logo {
             height: 100%;              /* ocupa todo el alto del header */
             max-height: 60px;          /* límite opcional para no desbordar */
             margin-right: 15px;        /* espacio entre logo y texto */
             }
 
-            .chat-info {
+        .chat-info {
             flex: 1;                   /* ocupa el espacio restante */
             }
 
 
+        .chat-header {
+            display: flex;
+            flex-direction: column;     /* apila logo, título, subtítulo, etc. */
+            align-items: center;        /* centra horizontalmente */
+            justify-content: center;    /* centra verticalmente */
+            background-color: var(--azul);
+            padding: 15px;
+            text-align: center;         /* centra texto a lo ancho */
+            }
+
+        .chat-header h2,
+        .chat-header .chat-subtitle,
+        .chat-header .status-indicator,
+        .chat-header .reset-chat {
+                color: var(--rojo);         /* texto en rojo */
+            }
+
+        .chat-logo {
+            max-height: 60px;           /* ajusta según el alto del header */
+            margin-bottom: 10px;
+            }   
 
 
 
-
-
+ /*
         .chat-header h2 {
             font-size: 22px;
             margin-bottom: 5px;
@@ -215,6 +235,8 @@
             opacity: 0.9;
             font-size: 14px;
         }
+*/
+
 
         .status-indicator {
             display: inline-flex;
