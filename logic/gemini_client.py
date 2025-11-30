@@ -96,52 +96,65 @@ def get_fallback_response():
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
-    # ✅ FORZAR QUE LA IA LISTE LAS PROPIEDADES EN SU RESPUESTA
+    if property_details:
+        # ... (código existente para detalles de propiedad) ...
+        pass
+    
     if results is not None and results:
         property_emojis = {
             'casa': '🏠',
             'departamento': '🏢', 
             'ph': '🏡',
             'terreno': '📐',
-            'oficina': '🏢',
-            'casaquinta': '🏘️'
+            'oficina': '💼',
+            'casaquinta': '🏘️',
+            'local': '🏪',
+            'galpon': '🏭'
         }
         
         properties_list = []
         for i, r in enumerate(results[:6]):  # Mostrar máximo 6 propiedades
+            # ✅ EMOJI DINÁMICO según tipo de propiedad
             emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
-            moneda = r.get('moneda_precio', 'USD')
-            precio = f"{moneda} {r['precio']:,}" if r['precio'] > 0 else "Consultar"
             
-            property_info = f"{emoji} **{r['titulo']}**\n"
-            property_info += f"📍 {r['barrio']} | 💰 {precio}\n"
-            property_info += f"🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
-            property_info += f"📋 {r['operacion'].title()} | {r['tipo'].title()}"
+            # ✅ FORMATO DE PRECIO MEJORADO
+            moneda = r.get('moneda_precio', 'USD')
+            if moneda == 'USD':
+                precio_formateado = f"USD {r['precio']:,.0f}" if r['precio'] > 0 else "Consultar"
+            else:
+                precio_formateado = f"${r['precio']:,.0f} {moneda}" if r['precio'] > 0 else "Consultar"
+            
+            # ✅ ESTRUCTURA MEJORADA CON NÚMERO PROGRESIVO
+            property_info = f"**{i+1}. {emoji} {r['titulo']}**\n"
+            property_info += f"   📍 {r['barrio']} | 💰 {precio_formateado}\n"
+            property_info += f"   🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
+            property_info += f"   📋 {r['operacion'].title()} | {r['tipo'].title()}"
             
             if r.get('descripcion'):
                 desc = r['descripcion'][:80] + '...' if len(r.get('descripcion', '')) > 80 else r['descripcion']
-                property_info += f"\n📝 {desc}"
+                property_info += f"\n   📝 {desc}"
             
             properties_list.append(property_info)
         
         properties_formatted = "\n\n".join(properties_list)
         
-        # ✅ PROMPT MEJORADO - La IA DEBE incluir las propiedades en su respuesta
+        # ✅ PROMPT MEJORADO CON PRESENTACIÓN MÁS CLARA
         return (
             f"El usuario busca: '{user_text}'\n\n"
             f"ENCONTRÉ {len(results)} PROPIEDADES que coinciden. "
-            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA:**\n\n"
+            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA CON ESTE FORMATO:**\n\n"
+            f"¡Hola! 👋 Encontré {len(results)} propiedades que coinciden con tu búsqueda:\n\n"
             f"{properties_formatted}\n\n"
-            f"Instrucciones para tu respuesta:\n"
-            f"1. Comienza saludando cálidamente\n"
-            f"2. MENCIONA que encontraste {len(results)} propiedades\n"  
-            f"3. LISTA todas las propiedades mostradas arriba\n"
-            f"4. Ofrece ayuda para más detalles\n"
-            f"5. Mantén un tono {'cercano con emojis' if whatsapp_tone else 'profesional'}\n\n"
-            f"¡NO omitas la lista de propiedades en tu respuesta!"
+            f"Instrucciones específicas para tu respuesta:\n"
+            f"1. Comienza con saludo cálido mencionando que encontraste {len(results)} propiedades\n"
+            f"2. USA LOS NÚMEROS PROGRESIVOS (1., 2., 3., etc.) para cada propiedad\n"
+            f"3. MANTÉN los emojis específicos para cada tipo de propiedad\n"
+            f"4. LISTA todas las propiedades exactamente como se muestran arriba\n"
+            f"5. Termina ofreciendo ayuda para más detalles\n"
+            f"6. NO uses viñetas (*), usa números progresivos\n"
+            f"7. Mantén un tono {'cercano con emojis' if whatsapp_tone else 'profesional pero amigable'}\n\n"
+            f"¡NO cambies el formato de numeración ni los emojis específicos!"
         )
-    
-    # ... (el resto del código para otros casos permanece igual)
     
     elif results is not None:
         return (
