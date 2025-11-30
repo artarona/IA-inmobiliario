@@ -99,54 +99,6 @@ export function resetearChat() {
 }
 
 // ✅ FUNCIÓN PARA MOSTRAR PROPIEDADES EN LA INTERFAZ
-function mostrarPropiedadesEnInterfaz(propiedades) {
-    console.log("🖥️ MOSTRANDO PROPIEDADES EN INTERFAZ");
-    
-    let propiedadesContainer = document.getElementById('propiedadesContainer');
-    
-    if (!propiedadesContainer) {
-        propiedadesContainer = document.createElement('div');
-        propiedadesContainer.id = 'propiedadesContainer';
-        propiedadesContainer.className = 'propiedades-container';
-        chatBox.appendChild(propiedadesContainer);
-    }
-    
-    propiedadesContainer.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">🏠 Propiedades Encontradas</h3>';
-    
-    const propertyEmojis = {
-        'casa': '🏠',
-        'departamento': '🏢', 
-        'ph': '🏡',
-        'terreno': '📐',
-        'oficina': '💼',
-        'casaquinta': '🏘️',
-        'local': '🏪',
-        'galpon': '🏭'
-    };
-    
-    propiedades.forEach((prop, index) => {
-        const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
-        
-        const propElement = document.createElement('div');
-        propElement.className = 'propiedad-card';
-        propElement.innerHTML = `
-            <div class="propiedad-header">
-                <h4><span class="numero-propiedad">${index + 1}.</span> ${emoji} ${prop.titulo}</h4>
-                <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
-            </div>
-            <div class="propiedad-info">
-                <span>📍 ${prop.barrio}</span>
-                <span>🏠 ${prop.ambientes} amb</span>
-                <span>📏 ${prop.metros_cuadrados} m²</span>
-                <span>📋 ${prop.operacion}</span>
-            </div>
-            ${prop.descripcion ? `<p class="descripcion">${prop.descripcion}</p>` : ''}
-        `;
-        propiedadesContainer.appendChild(propElement);
-    });
-    
-    console.log(`✅ ${propiedades.length} propiedades mostradas en interfaz`);
-}
 
 // ✅ FUNCIÓN PARA FORMATEAR PRECIOS
 function formatPrecio(precio, moneda) {
