@@ -107,12 +107,6 @@ class ChatRequest(BaseModel):
     contexto_anterior: Optional[Dict[str, Any]] = None
     es_seguimiento: Optional[bool] = False
 
-class ChatResponse(BaseModel):
-    response: str
-    results_count: Optional[int] = None
-    search_performed: bool
-    propiedades: Optional[List[dict]] = None
-
 class PropertyResponse(BaseModel):
     id_temporal: str
     titulo: str
@@ -141,6 +135,12 @@ class PropertyResponse(BaseModel):
     moneda_precio: Optional[str] = None
     moneda_expensas: Optional[str] = None
     fecha_procesamiento: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    results_count: Optional[int] = None
+    search_performed: bool
+    propiedades: Optional[List['PropertyResponse']] = None
 
 # ✅ ENDPOINTS
 @app.get("/")
