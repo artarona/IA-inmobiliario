@@ -67,9 +67,19 @@ app = FastAPI(
     version="1.1.0"
 )
 
+# Definir los orígenes permitidos para CORS
+origins = [
+    "https://artarona.github.io",
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -140,7 +150,7 @@ class ChatResponse(BaseModel):
     response: str
     results_count: Optional[int] = None
     search_performed: bool
-    propiedades: Optional[List['PropertyResponse']] = None
+    propiedades: Optional[List[PropertyResponse]] = None
 
 # ✅ ENDPOINTS
 @app.get("/")
