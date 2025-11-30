@@ -123,7 +123,8 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
                 precio_formateado = f"${r['precio']:,.0f} {moneda}" if r['precio'] > 0 else "Consultar"
             
             # ✅ NUMERACIÓN SOLO CON NÚMERO EN NEGRITA - SIN EMOJI 🔢
-            property_info = f" {i+1}. {emoji} {r['titulo']} \n"
+            # property_info = f" {i+1}. {emoji} {r['titulo']} \n"
+            property_info = f" <b><span style='font-size:18px'>{i+1}</span></b>. {emoji} {r['titulo']} <br>"
             property_info += f"   📍 {r['barrio']}\n"
             property_info += f"   💰 {precio_formateado}\n" 
             property_info += f"   🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
