@@ -122,13 +122,13 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
             else:
                 precio_formateado = f"${r['precio']:,.0f} {moneda}" if r['precio'] > 0 else "Consultar"
             
-            # ✅ NUMERACIÓN RESALTADA SIN ** Y MEJOR FORMATEO
-            property_info = f"🔢 **{i+1}. {emoji} {r['titulo']}**\n"
+            # ✅ NUMERACIÓN SOLO CON NÚMERO EN NEGRITA - SIN EMOJI 🔢
+            property_info = f" {i+1}. {emoji} {r['titulo']} \n"
             property_info += f"   📍 {r['barrio']}\n"
             property_info += f"   💰 {precio_formateado}\n" 
             property_info += f"   🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
             property_info += f"   📋 {r['operacion'].title()} | {r['tipo'].title()}"
-            
+
             if r.get('descripcion'):
                 desc = r['descripcion'][:100] + '...' if len(r.get('descripcion', '')) > 100 else r['descripcion']
                 property_info += f"\n   💬 {desc}"
@@ -145,13 +145,13 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
             f"{properties_formatted}\n\n"
             f"Instrucciones específicas:\n"
             f"1. Comienza con saludo mencionando {len(results)} propiedades encontradas\n"
-            f"2. USA EL EMOJI 🔢 ANTES DE CADA NÚMERO para resaltar la numeración\n"
-            f"3. MANTÉN los emojis específicos para cada tipo de propiedad\n"
+            f"2. USA SOLO EL NÚMERO EN NEGRITA (1., 2., 3.) para cada propiedad - SIN EMOJI 🔢\n"
+            f"3. MANTÉN los emojis específicos para cada tipo de propiedad (🏠, 🏢, 💼, etc.)\n"
             f"4. LISTA todas las propiedades exactamente como se muestran arriba\n"
             f"5. Termina ofreciendo ayuda para más detalles\n"
             f"6. NO repitas el mensaje de bienvenida\n"
             f"7. Mantén un tono profesional pero amigable\n\n"
-            f"¡NO repitas saludos de bienvenida!"
+            f"¡IMPORTANTE: Solo el número en negrita, sin 🔢!"
         )
     
     # ... (resto del código igual)
