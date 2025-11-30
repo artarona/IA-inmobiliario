@@ -204,7 +204,6 @@ async def chat(request: ChatRequest):
         style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp." if channel == "whatsapp" else "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
         
         # ✅ EVITAR DOBLE BIENVENIDA - Detectar si es un saludo inicial
-        # En el endpoint /chat, modificar esta parte:
         palabras_bienvenida = ['hola', 'hi', 'hello', 'buenas', 'empezar', 'inicio', 'ayuda']
         es_saludo_inicial = any(palabra in text_lower for palabra in palabras_bienvenida) and not contexto_anterior
 
@@ -223,7 +222,48 @@ async def chat(request: ChatRequest):
             prompt = build_prompt(user_text, results, filters, channel, f"{style_hint}\n{contexto_dinamico}\n{contexto_historial}")
             metrics.increment_gemini_calls()
             answer = call_gemini_with_rotation(prompt)
+            
+            # ✅ NUEVA MODIFICACIÓN: Limpiar respuesta cuando hay resultados
+            if results and len(results) > 0:
+                print("🎯 DETECTADO: Hay resultados - limpiando duplicación en respuesta")
                 
+                # Eliminar listados numerados de propiedades del texto
+                lines = answer.split('\n')
+                clean_lines = []
+                skip_next_lines = False
+                
+                for i, line in enumerate(lines):
+                    line_stripped = line.strip()
+                    
+                    # Detectar inicio de listado (líneas que empiezan con número)
+                    if (line_stripped and 
+                        (line_stripped[0].isdigit() and 
+                         ('.' in line_stripped or ')' in line_stripped or '🏠' in line_stripped or '📍' in line_stripped))):
+                        skip_next_lines = True
+                        continue
+                    
+                    # Detectar líneas con emojis de propiedades que deben omitirse
+                    if any(emoji in line for emoji in ['🏠', '📍', '💰', '📋', '💬']):
+                        continue
+                        
+                    # Si estamos en modo salto, buscar dónde termina el listado
+                    if skip_next_lines:
+                        if line_stripped == "" or i == len(lines) - 1:
+                            skip_next_lines = False
+                        continue
+                    
+                    clean_lines.append(line)
+                
+                # Reconstruir la respuesta
+                answer = '\n'.join(clean_lines).strip()
+                
+                # Si la respuesta quedó muy corta, usar un mensaje genérico
+                if not answer or len(answer) < 20:
+                    answer = f"✅ Encontré {len(results)} propiedades que coinciden con tu búsqueda. Te las muestro abajo:"
+                else:
+                    # Asegurar que termine con indicación de ver propiedades
+                    if "propiedad" not in answer.lower() and "encontré" not in answer.lower():
+                        answer += f"\n\n📊 **Encontré {len(results)} propiedades** - Te las muestro en detalle abajo 👇"
         
         response_time = time.time() - start_time
         log_conversation(user_text, answer, channel, response_time, search_performed, len(results) if results else 0)
@@ -251,6 +291,7 @@ async def chat(request: ChatRequest):
         metrics.increment_failures()
         print(f"❌ ERROR en endpoint /chat: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Ocurrió un error procesando tu consulta.")
+
 @app.get("/filters")
 def get_all_filters():
     """Endpoint para obtener filtros estáticos desde filter_data."""

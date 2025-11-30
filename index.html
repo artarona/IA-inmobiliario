@@ -864,7 +864,10 @@
         container.className = 'propiedades-container';
 
         const titulo = document.createElement('h3');
-        titulo.textContent = '🏠 Propiedades Encontradas';
+        titulo.textContent = `📊 ${propiedades.length} Propiedad(es) Encontrada(s)`;
+        titulo.style.marginBottom = '20px';
+        titulo.style.color = '#2c3e50';
+        titulo.style.textAlign = 'center';
         container.appendChild(titulo);
 
         const propertyEmojis = {
@@ -880,7 +883,7 @@
 
             card.innerHTML = `
                 <div class="propiedad-header">
-                    <h4><span class="numero-propiedad">${index + 1}.</span> ${emoji} ${prop.titulo}</h4>
+                    <h4>${emoji} ${prop.titulo}</h4>
                     <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
                 </div>
                 <div class="propiedad-info">
@@ -889,18 +892,32 @@
                     <span>• ${prop.metros_cuadrados} m²</span>
                     <span>• ${prop.operacion}</span>
                 </div>
-                ${prop.descripcion ? `<p class="descripcion">${prop.descripcion.substring(0, 120)}...</p>` : ''}
-                <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
-                    Ver Imágenes
-                </button>
+                ${prop.descripcion ? `
+                    <div class="descripcion">
+                        📝 ${prop.descripcion.substring(0, 120)}...
+                    </div>
+                ` : ''}
+                <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
+                        🖼️ Ver Fotos
+                    </button>
+                    <small style="color: #666; font-size: 12px;">
+                        ${prop.fotos && prop.fotos.length > 0 ? 
+                        `📸 ${prop.fotos.length} foto(s)` : 
+                        '📷 Fotos próximamente'}
+                    </small>
+                </div>
             `;
             container.appendChild(card);
         });
 
-        chatBox.appendChild(container);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    
+    chatBox.appendChild(container);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
+
+
     function showTypingIndicator(show) {
         typingIndicator.style.display = show ? 'flex' : 'none';
         if(show) chatBox.scrollTop = chatBox.scrollHeight;
