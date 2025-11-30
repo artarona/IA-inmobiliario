@@ -1,4 +1,4 @@
-<!-- INDEX.HTML CHATGPT -->
+<!-- INDEX.HTML CORREGIDO -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -70,6 +70,20 @@
             font-size: 16px;
             color: #ff0101;
             font-weight: 500;
+        }
+
+        .filters-loading {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .filters-loading small {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 10px;
         }
 
         .filter-group {
@@ -417,56 +431,103 @@
         .chat-box::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+
+        /* Estilos para las propiedades */
+        .propiedades-container {
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .propiedad-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+        }
+
+        .propiedad-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .propiedad-header h4 {
+            margin: 0;
+            color: #333;
+        }
+
+        .precio {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .propiedad-info {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+            .descripcion {
+            margin-top: 8px;
+            font-style: italic;
+            color: #555;
+        }   
+
+
+
+
+
+
+
+
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Panel de Filtros -->
+        <!-- Panel de Filtros - ÚNICA VERSIÓN -->
         <div class="filters-panel">
             <div class="filters-header">
                 <div class="logo-container">
-        
                     <h1>Dante Propiedades</h1>
                 </div>
                 <div class="filters-title">Filtros de Búsqueda</div>
+                <div class="filters-loading" id="filtersLoading">
+                    <small>🔄 Cargando filtros...</small>
+                </div>
             </div>
 
+            <!-- Operación -->
             <div class="filter-group">
                 <label class="filter-label">Tipo de Operación</label>
                 <select class="filter-select" id="operacion">
                     <option value="">Todas las operaciones</option>
-                    <option value="alquiler">Alquiler</option>
-                    <option value="venta">Venta</option>
                 </select>
             </div>
 
+            <!-- Barrio -->
             <div class="filter-group">
                 <label class="filter-label">Barrio/Localidad</label>
                 <select class="filter-select" id="barrio">
                     <option value="">Todos los barrios</option>
-                    <option value="palermo">Palermo</option>
-                    <option value="recoleta">Recoleta</option>
-                    <option value="belgrano">Belgrano</option>
-                    <option value="almagro">Almagro</option>
-                    <option value="caballito">Caballito</option>
-                    <option value="microcentro">Microcentro</option>
-                    <option value="balvanera">Balvanera</option>
-                    <option value="boedo">Boedo</option>
                 </select>
             </div>
 
+            <!-- Tipo de Propiedad -->
             <div class="filter-group">
                 <label class="filter-label">Tipo de Propiedad</label>
                 <select class="filter-select" id="tipo">
                     <option value="">Todos los tipos</option>
-                    <option value="departamento">Departamento</option>
-                    <option value="casa">Casa</option>
-                    <option value="ph">PH</option>
-                    <option value="casaquinta">Casaquinta</option>
-                    <option value="terreno">Terreno</option>
                 </select>
             </div>
 
+            <!-- Ambientes -->
             <div class="filter-group">
                 <label class="filter-label">Ambientes</label>
                 <select class="filter-select" id="ambientes">
@@ -478,14 +539,16 @@
                 </select>
             </div>
 
+            <!-- Precio -->
             <div class="filter-group">
-                <label class="filter-label">Precio (USD)</label>
+                <label class="filter-label">Precio (USD/ARS)</label>
                 <div class="range-inputs">
                     <input type="number" class="filter-input" id="precioMin" placeholder="Mínimo">
                     <input type="number" class="filter-input" id="precioMax" placeholder="Máximo">
                 </div>
             </div>
 
+            <!-- Metros Cuadrados -->
             <div class="filter-group">
                 <label class="filter-label">Metros Cuadrados</label>
                 <div class="range-inputs">
@@ -494,6 +557,7 @@
                 </div>
             </div>
 
+            <!-- Botones -->
             <div class="filter-buttons">
                 <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
                 <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar Filtros</button>
@@ -546,9 +610,12 @@
 
     <script>
         // ========================================
-        // CONFIGURACIÓN DEL BACKEND
+        // CONFIGURACIÓN DEL BACKEND - CORREGIDA
         // ========================================
-        const API_URL = "https://ia-inmobiliario.onrender.com/chat";
+        const API_BASE_URL = "https://ia-inmobiliario.onrender.com";
+        const CHAT_URL = `${API_BASE_URL}/chat`;
+        const FILTERS_URL = `${API_BASE_URL}/filters`;
+        const STATUS_URL = `${API_BASE_URL}/status`;
         
         const chatBox = document.getElementById('chatBox');
         const input = document.getElementById('userInput');
@@ -557,15 +624,124 @@
         const statusText = document.getElementById('statusText');
 
         let conversacionActual = [];
+        let filtrosDinamicos = {
+            operaciones: [],
+            tipos: [],
+            barrios: []
+        };
 
         // Contexto para seguimiento de conversación
         let contextoActual = {
-            tipo: null,           // 'busqueda' | 'propiedad_especifica'
-            resultados: [],       // Array de propiedades mostradas
-            propiedad_focus: null, // Propiedad específica en foco
-            filtros_usados: {},   // Filtros aplicados en la última búsqueda
+            tipo: null,
+            resultados: [],
+            propiedad_focus: null,
+            filtros_usados: {},
             timestamp: null
         };
+
+        // ========================================
+        // FUNCIONES DE FILTROS DINÁMICOS
+        // ========================================
+
+        // Función para cargar filtros dinámicos
+        async function cargarFiltrosDinamicos() {
+            const loadingElement = document.getElementById('filtersLoading');
+            
+            try {
+                console.log('🔄 Cargando filtros dinámicos desde:', FILTERS_URL);
+                loadingElement.innerHTML = '<small>🔄 Cargando filtros...</small>';
+                
+                const response = await fetch(FILTERS_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 Datos recibidos del backend:', data);
+                
+                // Validar y procesar datos
+                if (data.operaciones && data.tipos && data.barrios) {
+                    filtrosDinamicos = {
+                        operaciones: data.operaciones.filter(op => op && op.trim()),
+                        tipos: data.tipos.filter(tipo => tipo && tipo.trim()),
+                        barrios: data.barrios.filter(barrio => barrio && barrio.trim())
+                    };
+                    
+                    console.log('✅ Filtros procesados:', filtrosDinamicos);
+                    actualizarSelectoresFiltros();
+                    loadingElement.innerHTML = '<small>✅ Filtros cargados</small>';
+                    
+                    setTimeout(() => {
+                        loadingElement.innerHTML = '';
+                    }, 2000);
+                    
+                } else {
+                    throw new Error('Estructura de datos inválida');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cargando filtros:', error);
+                
+                // Valores por defecto
+                filtrosDinamicos = {
+                    operaciones: ["alquiler", "venta"],
+                    tipos: ["casa", "departamento", "ph", "terreno", "oficina", "casaquinta"],
+                    barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+                };
+                
+                actualizarSelectoresFiltros();
+                loadingElement.innerHTML = '<small>⚠️ Usando filtros predeterminados</small>';
+                
+                setTimeout(() => {
+                    loadingElement.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        // Función para actualizar los selectores
+        function actualizarSelectoresFiltros() {
+            console.log('🔄 Actualizando selectores...');
+            
+            // Operaciones
+            const selectOperacion = document.getElementById('operacion');
+            selectOperacion.innerHTML = '<option value="">Todas las operaciones</option>';
+            
+            filtrosDinamicos.operaciones.forEach(operacion => {
+                const option = document.createElement('option');
+                option.value = operacion.toLowerCase();
+                option.textContent = operacion.charAt(0).toUpperCase() + operacion.slice(1);
+                selectOperacion.appendChild(option);
+            });
+
+            // Barrios
+            const selectBarrio = document.getElementById('barrio');
+            selectBarrio.innerHTML = '<option value="">Todos los barrios</option>';
+            
+            filtrosDinamicos.barrios.forEach(barrio => {
+                const option = document.createElement('option');
+                option.value = barrio.toLowerCase();
+                option.textContent = barrio;
+                selectBarrio.appendChild(option);
+            });
+
+            // Tipos
+            const selectTipo = document.getElementById('tipo');
+            selectTipo.innerHTML = '<option value="">Todos los tipos</option>';
+            
+            filtrosDinamicos.tipos.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo.toLowerCase();
+                option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+                selectTipo.appendChild(option);
+            });
+
+            console.log('✅ Selectores actualizados');
+        }
+
+        // ========================================
+        // FUNCIONES PRINCIPALES
+        // ========================================
 
         // Función para actualizar el contexto
         function actualizarContexto(resultados, filtros = {}, tipo = 'busqueda') {
@@ -598,7 +774,6 @@
                 'me interesa', 'quiero saber', 'necesito saber'
             ];
             
-            // Patrones más flexibles para seguimiento
             const patronesSeguimiento = [
                 /(más|mas)\s+(información|informacion|detalles|data|info)/i,
                 /(brindar|brindame|proporcionar|proporcioname)\s+(más|mas|detalles|información|informacion)/i,
@@ -611,17 +786,14 @@
                 /(detalles|información|informacion)\s+(sobre|acerca|de)/i
             ];
             
-            // Verificar palabras clave
             const tienePalabraClave = palabrasSeguimiento.some(palabra => 
                 mensajeLower.includes(palabra)
             );
             
-            // Verificar patrones
             const tienePatron = patronesSeguimiento.some(patron => 
                 patron.test(mensajeLower)
             );
             
-            // También considerar mensajes muy cortos después de una búsqueda
             const esMensajeCorto = mensajeLower.split(' ').length <= 5;
             
             const esSeguimiento = tienePalabraClave || tienePatron || esMensajeCorto;
@@ -631,29 +803,11 @@
                 tienePalabraClave,
                 tienePatron, 
                 esMensajeCorto,
-                esSeguimiento,
-                contexto: contextoActual.resultados.length
+                esSeguimiento
             });
             
             return esSeguimiento;
         }
-        
-        
-        // Mensaje de bienvenida
-        const welcomeMessage = `¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
-
-        Te ayudo a encontrar la propiedad ideal. Podés:
-
-• Usar los filtros para búsquedas específicas
-• Contarme directamente qué necesitás
-• Combinar filtros con descripciones personalizadas
-
-¿En qué puedo ayudarte hoy?`;
-
-        // Inicializar chat
-        setTimeout(() => {
-            addMessage(welcomeMessage, 'bot');
-        }, 500);
 
         function addMessage(text, from = "bot") {
             const messageDiv = document.createElement('div');
@@ -668,7 +822,6 @@
             chatBox.appendChild(messageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             
-            // Guardar en conversación actual
             conversacionActual.push({
                 text: text,
                 from: from,
@@ -685,12 +838,11 @@
             typingIndicator.style.display = 'none';
         }
 
-       function resetearChat() {
+        function resetearChat() {
             if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
                 chatBox.innerHTML = '';
                 conversacionActual = [];
                 
-                // LIMPIAR CONTEXTO también
                 contextoActual = {
                     tipo: null,
                     resultados: [],
@@ -700,8 +852,8 @@
                 };
                 
                 limpiarFiltros();
+                cargarFiltrosDinamicos();
                 
-                // Mensaje de reinicio
                 setTimeout(() => {
                     addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
                 }, 300);
@@ -735,16 +887,34 @@
         function formatearFiltrosParaMensaje(filtros) {
             const partes = [];
             
-            if (filtros.operacion) partes.push(`${filtros.operacion}`);
-            if (filtros.neighborhood) partes.push(`barrio ${filtros.neighborhood}`);
-            if (filtros.tipo) partes.push(`tipo ${filtros.tipo}`);
-            if (filtros.min_rooms) partes.push(`mínimo ${filtros.min_rooms} ambientes`);
+            if (filtros.operacion) {
+                const operacionFormateada = filtros.operacion.charAt(0).toUpperCase() + filtros.operacion.slice(1);
+                partes.push(operacionFormateada);
+            }
+            
+            if (filtros.neighborhood) {
+                const barrioFormateado = filtros.neighborhood.split(' ')
+                    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+                    .join(' ');
+                partes.push(`barrio ${barrioFormateado}`);
+            }
+            
+            if (filtros.tipo) {
+                const tipoFormateado = filtros.tipo.charAt(0).toUpperCase() + filtros.tipo.slice(1);
+                partes.push(`tipo ${tipoFormateado}`);
+            }
+            
+            if (filtros.min_rooms) {
+                partes.push(`mínimo ${filtros.min_rooms} ambientes`);
+            }
+            
             if (filtros.min_price || filtros.max_price) {
                 let precio = 'precio';
-                if (filtros.min_price) precio += ` desde $${filtros.min_price}`;
-                if (filtros.max_price) precio += ` hasta $${filtros.max_price}`;
+                if (filtros.min_price) precio += ` desde $${filtros.min_price.toLocaleString()}`;
+                if (filtros.max_price) precio += ` hasta $${filtros.max_price.toLocaleString()}`;
                 partes.push(precio);
             }
+            
             if (filtros.min_sqm || filtros.max_sqm) {
                 let metros = 'metros';
                 if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
@@ -755,56 +925,24 @@
             return partes.join(', ');
         }
 
-        function construirConsultaConFiltros(mensajeAdicional = '') {
+        function aplicarFiltros() {
             const filtros = obtenerFiltrosSeleccionados();
+            
+            if (Object.keys(filtros).length === 0) {
+                alert('Seleccioná al menos un filtro para buscar.');
+                return;
+            }
+
             const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
             
-            let consulta = 'Buscar propiedades';
+            let mensajeNatural = `Buscar propiedades`;
             if (descripcionFiltros) {
-                consulta += ` con ${descripcionFiltros}`;
+                mensajeNatural += ` con ${descripcionFiltros}`;
             }
-            if (mensajeAdicional) {
-                consulta += `. ${mensajeAdicional}`;
-            }
-
-            return consulta;
+            
+            input.value = mensajeNatural;
+            send();
         }
-
-        function aplicarFiltros() {
-                const filtros = obtenerFiltrosSeleccionados();
-                
-                if (Object.keys(filtros).length === 0) {
-                    alert('Seleccioná al menos un filtro para buscar.');
-                    return;
-                }
-
-                // Construir mensaje MÁS NATURAL para el backend
-                const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
-                
-                // Mensaje más natural que Gemini entenderá mejor
-                let mensajeNatural = `Buscar propiedades para ${filtros.operacion || 'alquiler o venta'}`;
-                
-                if (filtros.neighborhood) {
-                    mensajeNatural += ` en ${filtros.neighborhood}`;
-                }
-                if (filtros.tipo) {
-                    mensajeNatural += `, tipo ${filtros.tipo}`;
-                }
-                if (filtros.min_rooms) {
-                    mensajeNatural += `, mínimo ${filtros.min_rooms} ambientes`;
-                }
-                if (filtros.min_price || filtros.max_price) {
-                    mensajeNatural += `, precio`;
-                    if (filtros.min_price) mensajeNatural += ` desde $${filtros.min_price}`;
-                    if (filtros.max_price) mensajeNatural += ` hasta $${filtros.max_price}`;
-                }
-                
-                input.value = mensajeNatural;
-                
-                // Enviar automáticamente
-                send();
-        }
-
 
         function limpiarFiltros() {
             document.getElementById('operacion').value = '';
@@ -817,17 +955,13 @@
             document.getElementById('metrosMax').value = '';
         }
 
-
-
-
-
         async function send() {
             let msg = input.value.trim();
             const filtrosSeleccionados = obtenerFiltrosSeleccionados();
             
-            // Si el mensaje está vacío pero hay filtros seleccionados, construir consulta automática
             if (!msg && Object.keys(filtrosSeleccionados).length > 0) {
-                msg = construirConsultaConFiltros();
+                const descripcionFiltros = formatearFiltrosParaMensaje(filtrosSeleccionados);
+                msg = `Buscar propiedades con ${descripcionFiltros}`;
             }
             
             if (!msg) {
@@ -835,22 +969,13 @@
                 return;
             }
 
-            // DETECTAR SI ES SEGUIMIENTO
             const esSeguimiento = esPreguntaSeguimiento(msg);
-            console.log('🔍 DEBUG COMPLETO DEL ENVÍO:', {
+            console.log('🔍 DEBUG ENVÍO:', {
                 mensaje: msg,
                 esSeguimiento: esSeguimiento,
-                contextoResultados: contextoActual.resultados ? contextoActual.resultados.length : 0,
-                contextoPropiedadFocus: contextoActual.propiedad_focus,
-                contextoCompleto: contextoActual,
-                payloadCompleto: {
-                    message: msg,
-                    channel: 'web',
-                    filters: filtrosSeleccionados,
-                    contexto_anterior: contextoActual,
-                    es_seguimiento: esSeguimiento
-                }
+                contextoResultados: contextoActual.resultados ? contextoActual.resultados.length : 0
             });
+            
             addMessage(msg, 'user');
             input.value = '';
             button.disabled = true;
@@ -864,14 +989,13 @@
                     filters: filtrosSeleccionados
                 };
 
-                // AGREGAR CONTEXTO SI ES SEGUIMIENTO
                 if (esSeguimiento && contextoActual.resultados.length > 0) {
                     payload.contexto_anterior = contextoActual;
                     payload.es_seguimiento = true;
                     console.log('📤 Enviando contexto al backend:', contextoActual);
                 }
 
-                const response = await fetch(API_URL, {
+                const response = await fetch(CHAT_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -887,48 +1011,24 @@
                 const data = await response.json();
                 console.log('✅ Respuesta completa:', data);
 
-                // MEJOR MANEJO DE RESPUESTAS CON CONTEXTO
                 if (data.response) {
                     let mensajeMejorado = data.response;
                     
-                    // AGREGAR INFORMACIÓN SOBRE RESULTADOS Y ACTUALIZAR CONTEXTO
                     if (data.search_performed && data.results_count !== null) {
                         if (data.results_count > 0) {
                             mensajeMejorado += `\n\n---\n**🎯 BÚSQUEDA EXITOSA**\n📊 **Encontré ${data.results_count} propiedades** que coinciden con tu búsqueda.`;
                             
-                            // ACTUALIZAR CONTEXTO con los nuevos resultados
-                            console.log('🔍 DEBUG - ANTES DE ACTUALIZAR CONTEXTO:', {
-                                data_propiedades: data.propiedades,
-                                data_propiedades_length: data.propiedades ? data.propiedades.length : 0,
-                                data_completa: data,
-                                filtrosSeleccionados: filtrosSeleccionados
-                            });
-                            
-                            // ACTUALIZAR CONTEXTO con los nuevos resultados
                             if (data.propiedades && data.propiedades.length > 0) {
-                                console.log('✅ CONDICIÓN CUMPLIDA - Actualizando contexto');
                                 actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
-                            } else {
-                                console.log('❌ CONDICIÓN FALLADA - No hay propiedades para actualizar contexto');
-                                console.log('💡 Data recibida:', data);
                             }
 
-                            // AGREGAR INSTRUCCIÓN DE SEGUIMIENTO SOLO SI ES NUEVA BÚSQUEDA Y HAY RESULTADOS
                             if (!esSeguimiento) {
-                                mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento en Palermo?"\n• "Contacto para la propiedad de $280,000"`;
-                                console.log('💡 Mensaje de seguimiento agregado');
+                                mensajeMejorado += `\n\n**💡 ¿Necesitás más información?** Podés preguntar:\n• "Más detalles sobre el primero"\n• "¿Tiene fotos el departamento?"\n• "Contacto para la propiedad de $280,000"`;
                             }
                         } else {
                             mensajeMejorado += `\n\n---\n**🔍 BÚSQUEDA REALIZADA**\n📭 No encontré propiedades con esos criterios. ¿Querés ajustar los filtros?`;
-                            // Limpiar contexto si no hay resultados
                             actualizarContexto([], {}, 'busqueda');
                         }
-                    }
-                    
-                    // Si no se realizó búsqueda pero es seguimiento, mantener contexto
-                    if (!data.search_performed && esSeguimiento) {
-                        // Mantener el contexto anterior para seguir la conversación
-                        console.log('🔄 Manteniendo contexto para seguimiento');
                     }
                     
                     addMessage(mensajeMejorado);
@@ -951,6 +1051,10 @@
             }
         }
 
+        // ========================================
+        // INICIALIZACIÓN
+        // ========================================
+
         // Event listeners
         button.addEventListener('click', send);
         input.addEventListener('keypress', (e) => {
@@ -965,7 +1069,7 @@
         // Verificar estado del servidor
         async function checkServerStatus() {
             try {
-                const response = await fetch(API_URL.replace('/chat', '/status'));
+                const response = await fetch(STATUS_URL);
                 if (response.ok) {
                     statusText.textContent = 'Conectado';
                 } else {
@@ -976,8 +1080,19 @@
             }
         }
 
+        // Inicializar aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando aplicación...');
+            cargarFiltrosDinamicos();
+            checkServerStatus();
+            
+            // Mensaje de bienvenida
+            setTimeout(() => {
+                addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. Podés usar los filtros o contarme directamente qué necesitás. ¿En qué puedo ayudarte hoy?', 'bot');
+            }, 500);
+        });
+
         setInterval(checkServerStatus, 30000);
-        checkServerStatus();
     </script>
 </body>
 </html>
