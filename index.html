@@ -705,34 +705,67 @@
     // LÓGICA DEL MODAL DE IMÁGENES (CORREGIDA)
     // ========================================
     function mostrarImagenesByIndex(index) {
-        const fotos = contextoActual.resultados[index]?.fotos;
-        
-        // LÍNEA DE DIAGNÓSTICO AÑADIDA
-        console.log(`[Diagnóstico] Intentando cargar imágenes para propiedad índice ${index}. URLs:`, fotos);
+    const fotos = contextoActual.resultados[index]?.fotos;
+    
+    console.log(`[Diagnóstico] Intentando cargar imágenes para propiedad índice ${index}. URLs:`, fotos);
 
-        const modal = document.getElementById('imageModal');
-        const modalImages = document.getElementById('modalImagesContainer');
-        
-        modalImages.innerHTML = ''; // Limpiar imágenes anteriores
-        
-        if (fotos && fotos.length > 0) {
-            fotos.forEach(fotoUrl => {
-                const img = document.createElement('img');
-                img.src = fotoUrl;
-                // Añadir un manejador de error por si la imagen no carga
-                img.onerror = () => {
-                    img.alt = `No se pudo cargar la imagen en la ruta: ${fotoUrl}`;
-                    console.error(`[Diagnóstico] 404 - No se encontró la imagen en: ${fotoUrl}`);
-                };
-                modalImages.appendChild(img);
-            });
-        } else {
-            modalImages.innerHTML = '<p style="color: white; text-align: center; font-size: 18px;">No hay imágenes disponibles para esta propiedad.</p>';
-        }
-        
-        modal.style.display = 'block';
+    const modal = document.getElementById('imageModal');
+    const modalImages = document.getElementById('modalImagesContainer');
+    
+    modalImages.innerHTML = ''; // Limpiar imágenes anteriores
+    
+    if (fotos && fotos.length > 0) {
+        fotos.forEach(fotoUrl => {
+            const img = document.createElement('img');
+            
+            // ✅ CORRECCIÓN DEFINITIVA - Construir URL correcta
+            let imagenSrc = fotoUrl;
+            
+            // Caso 1: Si la ruta es "imgs/archivo.jpg" → "/imgs/archivo.jpg"
+            if (fotoUrl.startsWith('imgs/')) {
+                imagenSrc = `${API_BASE_URL}/${fotoUrl}`;
+            }
+            // Caso 2: Si es solo "archivo.jpg" → "/imgs/archivo.jpg"  
+            else if (!fotoUrl.includes('/') && fotoUrl.includes('.')) {
+                imagenSrc = `${API_BASE_URL}/imgs/${fotoUrl}`;
+            }
+            // Caso 3: Si ya es una URL completa, dejarla como está
+            else if (fotoUrl.startsWith('http')) {
+                imagenSrc = fotoUrl;
+            }
+            // Caso 4: Cualquier otro caso, asumir que está en /imgs/
+            else {
+                imagenSrc = `${API_BASE_URL}/imgs/${fotoUrl}`;
+            }
+            
+            console.log(`[Diagnóstico] Cargando imagen: ${imagenSrc}`);
+            img.src = imagenSrc;
+            img.alt = `Imagen de la propiedad`;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            
+            // Manejador de error mejorado
+            img.onerror = () => {
+                console.error(`[Error] No se pudo cargar: ${imagenSrc}`);
+                img.alt = `Imagen no disponible: ${fotoUrl}`;
+                
+                // Placeholder elegante
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjRmNGY0Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+RXNwZXJhbmRvIGltw6FnZW5lczwvdGV4dD48L3N2Zz4=';
+            };
+            
+            // Manejador de éxito
+            img.onload = () => {
+                console.log(`[Éxito] Imagen cargada: ${imagenSrc}`);
+            };
+            
+            modalImages.appendChild(img);
+        });
+    } else {
+        modalImages.innerHTML = '<p style="color: white; text-align: center; font-size: 18px; padding: 40px;">No hay imágenes disponibles para esta propiedad.</p>';
     }
-
+    
+    modal.style.display = 'block';
+}
     function cerrarModal() {
         const modal = document.getElementById('imageModal');
         modal.style.display = 'none';
@@ -1002,6 +1035,81 @@
             statusText.textContent = 'Sin conexión';
         }
     }
+// ========================================
+// FUNCIÓN DE DIAGNÓSTICO TEMPORAL
+// (Ejecutar desde la consola del navegador)
+// ========================================
+async function diagnosticarProblemaImagenes() {
+    console.log('=== 🎯 DIAGNÓSTICO DE IMÁGENES ===');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    
+    // Verificar una imagen específica
+    const testImageUrl = `${API_BASE_URL}/imgs/UF001-1.jpg`;
+    console.log('📝 Probando URL:', testImageUrl);
+    
+    try {
+        const response = await fetch(testImageUrl, { method: 'HEAD' });
+        console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+        
+        if (response.ok) {
+            console.log('✅ La imagen EXISTE en el servidor');
+        } else {
+            console.log('❌ La imagen NO EXISTE en el servidor - Error:', response.status);
+        }
+    } catch (error) {
+        console.log('❌ Error de conexión:', error.message);
+    }
+    
+    // Verificar también el endpoint de debug
+    try {
+        const debugResponse = await fetch(`${API_BASE_URL}/debug-images`);
+        const debugData = await debugResponse.json();
+        console.log('🔍 Debug del servidor:', debugData);
+    } catch (error) {
+        console.log('❌ No se pudo acceder al endpoint de debug');
+    }
+}
+
+// Función para probar todas las imágenes de una propiedad
+async function diagnosticarPropiedad(index = 0) {
+    if (!contextoActual.resultados || !contextoActual.resultados[index]) {
+        console.log('❌ No hay propiedades en el contexto actual');
+        return;
+    }
+    
+    const propiedad = contextoActual.resultados[index];
+    console.log(`=== 🔍 DIAGNÓSTICO PROPIEDAD ${index} ===`);
+    console.log('Propiedad:', propiedad.titulo);
+    console.log('Fotos:', propiedad.fotos);
+    
+    if (propiedad.fotos && propiedad.fotos.length > 0) {
+        for (let i = 0; i < propiedad.fotos.length; i++) {
+            let fotoUrl = propiedad.fotos[i];
+            let urlCompleta = fotoUrl;
+            
+            // Aplicar las mismas reglas que en mostrarImagenesByIndex
+            if (fotoUrl.startsWith('imgs/')) {
+                urlCompleta = `${API_BASE_URL}/${fotoUrl}`;
+            } else if (!fotoUrl.includes('/') && fotoUrl.includes('.')) {
+                urlCompleta = `${API_BASE_URL}/imgs/${fotoUrl}`;
+            }
+            
+            console.log(`\n📸 Imagen ${i + 1}:`);
+            console.log('   Original:', fotoUrl);
+            console.log('   URL Final:', urlCompleta);
+            
+            try {
+                const response = await fetch(urlCompleta, { method: 'HEAD' });
+                console.log(`   Status: ${response.status} - ${response.ok ? '✅ EXISTE' : '❌ NO EXISTE'}`);
+            } catch (error) {
+                console.log('   Status: ❌ ERROR -', error.message);
+            }
+        }
+    } else {
+        console.log('ℹ️ Esta propiedad no tiene fotos definidas');
+    }
+}
+
 </script>
 </body>
 </html>

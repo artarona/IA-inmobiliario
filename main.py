@@ -281,6 +281,26 @@ def status():
         "search_queries": metrics.search_queries
     }
 
+
+@app.get("/debug-images")
+def debug_images():
+    """Endpoint para verificar qué imágenes están disponibles"""
+    import os
+    try:
+        if os.path.exists("imgs"):
+            image_files = os.listdir("imgs")
+            return {
+                "message": "Carpeta imgs encontrada",
+                "path_absoluto": os.path.abspath("imgs"),
+                "total_images": len(image_files),
+                "images": sorted(image_files)[:20]  # Primeras 20 imágenes ordenadas
+            }
+        else:
+            return {"error": "Carpeta 'imgs' no encontrada en el servidor"}
+    except Exception as e:
+        return {"error": f"Error al leer carpeta: {str(e)}"}
+
+
 # ✅ INICIO
 if __name__ == "__main__":
     import uvicorn
