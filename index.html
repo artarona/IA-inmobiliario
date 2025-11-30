@@ -1,0 +1,1000 @@
+<!-- INDEX.HTML CORREGIDO -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dante Propiedades — Asistente Inmobiliario Inteligente</title>
+    <style>
+        /* Reset y base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Layout principal */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: 90vh;
+        }
+
+        /* Panel de filtros */
+        .filters-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filters-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .logo-container img {
+            height: 50px;
+            width: auto;
+        }
+
+        .logo-container h1 {
+            font-size: 20px;
+            color: #232deb;
+            font-weight: 700;
+        }
+
+        .filters-title {
+            font-size: 16px;
+            color: #ff0101;
+            font-weight: 500;
+        }
+
+        .filters-loading {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .filters-loading small {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .filter-group {
+            margin-bottom: 25px;
+        }
+
+        .filter-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .filter-select, .filter-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .range-inputs input {
+            flex: 1;
+        }
+
+        .filter-buttons {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Área de chat */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #ff0101 0%, #007bff 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h2 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .chat-subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 12px;
+            border-radius: 15px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Mensajes */
+        .message {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.5;
+            position: relative;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .msg-bot {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .msg-bot b {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 20px 25px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 16px 20px;
+            font-size: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+
+        #sendBtn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+
+        #sendBtn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Loading indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e9ecef;
+            align-self: flex-start;
+            max-width: 120px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Reset chat */
+        .reset-chat {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .reset-chat:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .filters-panel {
+                order: 2;
+            }
+            
+            .chat-area {
+                order: 1;
+                height: 70vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .app-container {
+                gap: 15px;
+            }
+            
+            .filters-panel, .chat-area {
+                border-radius: 15px;
+            }
+            
+            .chat-header {
+                padding: 15px 20px;
+            }
+            
+            .chat-box {
+                padding: 15px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .input-area {
+                padding: 15px 20px;
+            }
+        }
+
+        /* Scrollbar personalizado */
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Estilos para las propiedades */
+        .propiedades-container {
+            align-self: center;
+            width: 100%;
+            max-width: 95%;
+            margin: 15px 0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f0f2f5;
+        }
+
+        .propiedad-card {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 10px 0;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .propiedad-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        }
+
+        .propiedad-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .propiedad-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .precio {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2e7d32;
+            background-color: #e8f5e9;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .propiedad-info {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .descripcion {
+            margin-top: 8px;
+            font-style: italic;
+            color: #555;
+        }   
+
+        .btn-imagenes {
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .btn-imagenes:hover {
+            background: #218838;
+        }
+        
+        /* Estilos para el modal de imágenes */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.85);
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        .modal-content {
+            margin: auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+        }
+        
+        .modal-images-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .modal-images-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel de Filtros - ÚNICA VERSIÓN -->
+        <div class="filters-panel">
+            <div class="filters-header">
+                <div class="logo-container">
+                    <h1>Dante Propiedades</h1>
+                </div>
+                <div class="filters-title">Filtros de Búsqueda</div>
+                <div class="filters-loading" id="filtersLoading">
+                    <small>🔄 Cargando filtros...</small>
+                </div>
+            </div>
+
+            <!-- Operación -->
+            <div class="filter-group">
+                <label class="filter-label">Tipo de Operación</label>
+                <select class="filter-select" id="operacion">
+                    <option value="">Todas las operaciones</option>
+                </select>
+            </div>
+
+            <!-- Barrio -->
+            <div class="filter-group">
+                <label class="filter-label">Barrio/Localidad</label>
+                <select class="filter-select" id="barrio">
+                    <option value="">Todos los barrios</option>
+                </select>
+            </div>
+
+            <!-- Tipo de Propiedad -->
+            <div class="filter-group">
+                <label class="filter-label">Tipo de Propiedad</label>
+                <select class="filter-select" id="tipo">
+                    <option value="">Todos los tipos</option>
+                </select>
+            </div>
+
+            <!-- Ambientes -->
+            <div class="filter-group">
+                <label class="filter-label">Ambientes</label>
+                <select class="filter-select" id="ambientes">
+                    <option value="">Cualquier cantidad</option>
+                    <option value="1">1 Ambiente</option>
+                    <option value="2">2 Ambientes</option>
+                    <option value="3">3 Ambientes</option>
+                    <option value="4">4+ Ambientes</option>
+                </select>
+            </div>
+
+            <!-- Precio -->
+            <div class="filter-group">
+                <label class="filter-label">Precio (USD/ARS)</label>
+                <div class="range-inputs">
+                    <input type="number" class="filter-input" id="precioMin" placeholder="Mínimo">
+                    <input type="number" class="filter-input" id="precioMax" placeholder="Máximo">
+                </div>
+            </div>
+
+            <!-- Metros Cuadrados -->
+            <div class="filter-group">
+                <label class="filter-label">Metros Cuadrados</label>
+                <div class="range-inputs">
+                    <input type="number" class="filter-input" id="metrosMin" placeholder="Mínimo m²">
+                    <input type="number" class="filter-input" id="metrosMax" placeholder="Máximo m²">
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="filter-buttons">
+                <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar Filtros</button>
+            </div>
+        </div>
+
+        <!-- Área de Chat -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <h2>Asistente Inmobiliario</h2>
+                <div class="chat-subtitle">Encontrá la propiedad perfecta para vos</div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span id="statusText">Conectado</span>
+                </div>
+                <button class="reset-chat" onclick="resetearChat()">Nueva Consulta</button>
+            </div>
+
+            <div class="chat-box" id="chatBox">
+            </div>
+
+            <!-- Indicador de typing -->
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span>Escribiendo...</span>
+            </div>
+
+            <!-- Input area -->
+            <div class="input-area">
+                <div class="input-row">
+                    <input type="text" id="userInput" 
+                        placeholder="Ej: 'Busco departamento con balcón en Almagro...'"
+                        autocomplete="off">
+                    <button id="sendBtn">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para las imágenes -->
+    <div id="imageModal" class="modal">
+        <span class="close-modal" id="closeModalBtn">&times;</span>
+        <div class="modal-content">
+            <div class="modal-images-container" id="modalImagesContainer"></div>
+        </div>
+    </div>
+
+ <script>
+    // ========================================
+    // CONFIGURACIÓN DEL BACKEND
+    // ========================================
+    const API_BASE_URL = "https://ia-inmobiliario.onrender.com";
+    const CHAT_URL = `${API_BASE_URL}/chat`;
+    const FILTERS_URL = `${API_BASE_URL}/filters`;
+    const STATUS_URL = `${API_BASE_URL}/status`;
+    
+    let chatBox, input, button, typingIndicator, statusText;
+
+    let conversacionActual = [];
+    let filtrosDinamicos = { operaciones: [], tipos: [], barrios: [] };
+    let contextoActual = { tipo: null, resultados: [], propiedad_focus: null, filtros_usados: {}, timestamp: null };
+
+    // ========================================
+    // LÓGICA DEL MODAL DE IMÁGENES (CORREGIDA)
+    // ========================================
+    function mostrarImagenesByIndex(index) {
+        // Se busca la propiedad en el contexto guardado usando el índice
+        const fotos = contextoActual.resultados[index]?.fotos;
+
+        const modal = document.getElementById('imageModal');
+        const modalImages = document.getElementById('modalImagesContainer');
+        
+        modalImages.innerHTML = ''; // Limpiar imágenes anteriores
+        
+        if (fotos && fotos.length > 0) {
+            fotos.forEach(fotoUrl => {
+                const img = document.createElement('img');
+                img.src = fotoUrl;
+                modalImages.appendChild(img);
+            });
+        } else {
+            modalImages.innerHTML = '<p style="color: white; text-align: center; font-size: 18px;">No hay imágenes disponibles para esta propiedad.</p>';
+        }
+        
+        modal.style.display = 'block';
+    }
+
+    function cerrarModal() {
+        const modal = document.getElementById('imageModal');
+        modal.style.display = 'none';
+    }
+
+    // ========================================
+    // FUNCIONES DE FILTROS DINÁMICOS
+    // ========================================
+    async function cargarFiltrosDinamicos() {
+        const loadingElement = document.getElementById('filtersLoading');
+        try {
+            loadingElement.innerHTML = '<small>🔄 Cargando filtros...</small>';
+            const response = await fetch(FILTERS_URL);
+            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+            
+            const data = await response.json();
+            if (data.operaciones && data.tipos && data.barrios) {
+                filtrosDinamicos = {
+                    operaciones: data.operaciones.filter(op => op && op.trim()),
+                    tipos: data.tipos.filter(tipo => tipo && tipo.trim()),
+                    barrios: data.barrios.filter(barrio => barrio && barrio.trim())
+                };
+                actualizarSelectoresFiltros();
+                loadingElement.innerHTML = '<small>✅ Filtros cargados</small>';
+            } else {
+                throw new Error('Estructura de datos inválida');
+            }
+        } catch (error) {
+            console.error('❌ Error cargando filtros:', error);
+            filtrosDinamicos = {
+                operaciones: ["alquiler", "venta"],
+                tipos: ["casa", "departamento", "ph", "terreno", "oficina", "casaquinta"],
+                barrios: ["Parque Avellaneda", "Boedo", "Microcentro", "Pilar"]
+            };
+            actualizarSelectoresFiltros();
+            loadingElement.innerHTML = '<small>⚠️ Usando filtros predeterminados</small>';
+        } finally {
+            setTimeout(() => { loadingElement.innerHTML = ''; }, 2500);
+        }
+    }
+
+    function actualizarSelectoresFiltros() {
+        const poblarSelect = (id, options, defaultText) => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.innerHTML = `<option value="">${defaultText}</option>`;
+                options.forEach(optionText => {
+                    const option = document.createElement('option');
+                    option.value = optionText.toLowerCase();
+                    option.textContent = optionText.charAt(0).toUpperCase() + optionText.slice(1);
+                    select.appendChild(option);
+                });
+            }
+        };
+        poblarSelect('operacion', filtrosDinamicos.operaciones, 'Todas las operaciones');
+        poblarSelect('barrio', filtrosDinamicos.barrios, 'Todos los barrios');
+        poblarSelect('tipo', filtrosDinamicos.tipos, 'Todos los tipos');
+    }
+
+    // ========================================
+    // FUNCIONES PRINCIPALES DE CHAT
+    // ========================================
+    function actualizarContexto(resultados, filtros = {}, tipo = 'busqueda') {
+        contextoActual = {
+            tipo: tipo,
+            resultados: resultados || [],
+            propiedad_focus: resultados && resultados.length === 1 ? resultados[0] : null,
+            filtros_usados: filtros,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    function addMessage(text, from = "bot") {
+        if (!chatBox) return;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${from === 'user' ? 'msg-user' : 'msg-bot'}`;
+        messageDiv.innerHTML = from === 'bot' ? `<b>ASISTENTE VIRTUAL</b><br>${text.replace(/\n/g, '<br>')}` : text;
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function formatPrecio(precio, moneda) {
+        if (!precio || isNaN(precio) || precio === 0) return 'Consultar';
+        const currency = moneda === 'ARS' ? 'ARS' : 'USD';
+        const formatter = new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        return formatter.format(precio);
+    }
+
+    function mostrarPropiedadesEnInterfaz(propiedades) {
+        const container = document.createElement('div');
+        container.className = 'propiedades-container';
+
+        const titulo = document.createElement('h3');
+        titulo.textContent = '🏠 Propiedades Encontradas';
+        container.appendChild(titulo);
+
+        const propertyEmojis = {
+            'casa': '🏠', 'departamento': '🏢', 'ph': '🏡',
+            'terreno': '📐', 'oficina': '💼', 'casaquinta': '🏘️',
+            'local': '🏪', 'galpon': '🏭'
+        };
+
+        propiedades.forEach((prop, index) => {
+            const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
+            const card = document.createElement('div');
+            card.className = 'propiedad-card';
+
+            card.innerHTML = `
+                <div class="propiedad-header">
+                    <h4><span class="numero-propiedad">${index + 1}.</span> ${emoji} ${prop.titulo}</h4>
+                    <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
+                </div>
+                <div class="propiedad-info">
+                    <span>📍 ${prop.barrio}</span>
+                    <span>• ${prop.ambientes} amb</span>
+                    <span>• ${prop.metros_cuadrados} m²</span>
+                    <span>• ${prop.operacion}</span>
+                </div>
+                ${prop.descripcion ? `<p class="descripcion">${prop.descripcion.substring(0, 120)}...</p>` : ''}
+                <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
+                    Ver Imágenes
+                </button>
+            `;
+            container.appendChild(card);
+        });
+
+        chatBox.appendChild(container);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    
+    function showTypingIndicator(show) {
+        typingIndicator.style.display = show ? 'flex' : 'none';
+        if(show) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function resetearChat() {
+        if (confirm('¿Estás seguro de que querés empezar una nueva conversación?')) {
+            chatBox.innerHTML = '';
+            conversacionActual = [];
+            actualizarContexto([], {}, null);
+            limpiarFiltros();
+            addMessage('¡Perfecto! Empecemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
+        }
+    }
+
+    function obtenerFiltrosSeleccionados() {
+        const filtros = {};
+        ['operacion', 'barrio', 'tipo', 'ambientes', 'precioMin', 'precioMax', 'metrosMin', 'metrosMax'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.value) {
+                const keyMap = { 'barrio': 'neighborhood', 'ambientes': 'min_rooms', 'precioMin': 'min_price', 'precioMax': 'max_price', 'metrosMin': 'min_sqm', 'metrosMax': 'max_sqm' };
+                filtros[keyMap[id] || id] = ['min_price', 'max_price', 'min_sqm', 'max_sqm'].includes(id) ? parseFloat(el.value) : el.value;
+            }
+        });
+        return filtros;
+    }
+    
+    function aplicarFiltros() {
+        const filtros = obtenerFiltrosSeleccionados();
+        if (Object.keys(filtros).length === 0) return alert('Seleccioná al menos un filtro para buscar.');
+        
+        let mensajeNatural = "Buscar con filtros: " + Object.entries(filtros).map(([k,v]) => `${k}: ${v}`).join(', ');
+        input.value = mensajeNatural;
+        send();
+    }
+
+    function limpiarFiltros() {
+        ['operacion', 'barrio', 'tipo', 'ambientes', 'precioMin', 'precioMax', 'metrosMin', 'metrosMax'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+    }
+
+    async function send() {
+        let msg = input.value.trim();
+        const filtrosSeleccionados = obtenerFiltrosSeleccionados();
+        if (!msg && Object.keys(filtrosSeleccionados).length > 0) {
+            msg = "Busqueda desde filtros"; // Mensaje genérico cuando se usan filtros
+        }
+        if (!msg) return;
+
+        addMessage(msg, 'user');
+        input.value = '';
+        button.disabled = true;
+        showTypingIndicator(true);
+
+        try {
+            const payload = { message: msg, channel: 'web', filters: filtrosSeleccionados, contexto_anterior: contextoActual };
+            const response = await fetch(CHAT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+            
+            const data = await response.json();
+
+            if (data.response) {
+                addMessage(data.response);
+                if (data.propiedades && data.propiedades.length > 0) {
+                    // Primero se actualiza el contexto
+                    actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
+                    // Luego se muestran las propiedades, que usarán el contexto actualizado
+                    mostrarPropiedadesEnInterfaz(data.propiedades);
+                } else {
+                    actualizarContexto([], filtrosSeleccionados, 'busqueda_sin_resultados');
+                }
+            } else if (data.error) {
+                addMessage(`⚠️ Error: ${data.error}`);
+            } else {
+                addMessage('❌ Respuesta inesperada del servidor');
+            }
+            statusText.textContent = 'Conectado';
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage('⚠️ No se pudo conectar con el servidor. Por favor, intentá nuevamente más tarde.');
+            statusText.textContent = 'Error de conexión';
+        } finally {
+            showTypingIndicator(false);
+            button.disabled = false;
+            input.focus();
+        }
+    }
+
+    // ========================================
+    // INICIALIZACIÓN
+    // ========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        chatBox = document.getElementById('chatBox');
+        input = document.getElementById('userInput');
+        button = document.getElementById('sendBtn');
+        typingIndicator = document.getElementById('typingIndicator');
+        statusText = document.getElementById('statusText');
+        
+        button.addEventListener('click', send);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') send(); });
+        
+        const modal = document.getElementById('imageModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        closeModalBtn.onclick = cerrarModal;
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                cerrarModal();
+            }
+        };
+
+        cargarFiltrosDinamicos();
+        checkServerStatus();
+        setInterval(checkServerStatus, 30000);
+        
+        setTimeout(() => {
+            addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. ¿En qué puedo ayudarte hoy?', 'bot');
+        }, 1000);
+    });
+
+    async function checkServerStatus() {
+        try {
+            const response = await fetch(STATUS_URL);
+            statusText.textContent = response.ok ? 'Conectado' : 'Servidor inactivo';
+        } catch (error) {
+            statusText.textContent = 'Sin conexión';
+        }
+    }
+</script>
+</body>
+</html>
