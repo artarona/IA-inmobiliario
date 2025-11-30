@@ -251,6 +251,7 @@ async def chat(request: ChatRequest, request: Request):
         metrics.increment_failures()
         print(f"❌ ERROR en endpoint /chat: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Ocurrió un error procesando tu consulta.")
+
 @app.get("/filters")
 def get_all_filters():
     """Endpoint para obtener filtros estáticos desde filter_data."""
@@ -262,42 +263,46 @@ def get_all_filters():
 
 @app.get("/properties", response_model=List[PropertyResponse])
 def get_properties_endpoint(
-    neighborhood: Optional[str] = None, min_price: Optional[float] = None, max_price: Optional[float] = None,
-    min_rooms: Optional[int] = None, operacion: Optional[str] = None, tipo: Optional[str] = None,
-    min_sqm: Optional[float] = None, max_sqm: Optional[float] = None, limit: int = 20
-):
-    filters = {k: v for k, v in locals().items() if v is not None and k != 'limit'}
-    results = query_properties(filters)
-    print(f"📊 RESULTADOS OBTENIDOS: {len(results) if results else 0} propiedades")
-    return results[:limit]
-
-from fastapi import Query
-
-@app.get("/properties")
-def get_properties_endpoint(
     neighborhood: Optional[str] = Query(None, description="Barrio de la propiedad"),
     min_price: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
     max_price: Optional[float] = Query(None, ge=0, description="Precio máximo"),
+    min_rooms: Optional[int] = Query(None, ge=0, description="Mínimo de ambientes"),
+    operacion: Optional[str] = Query(None, description="Tipo de operación (venta/alquiler)"),
+    tipo: Optional[str] = Query(None, description="Tipo de propiedad"),
+    min_sqm: Optional[float] = Query(None, ge=0, description="Metros cuadrados mínimos"),
+    max_sqm: Optional[float] = Query(None, ge=0, description="Metros cuadrados máximos"),
     limit: int = Query(20, ge=1, le=100, description="Límite de resultados")
 ):
-    # Validación adicional
+    # Validación de rangos de precio
     if min_price and max_price and min_price > max_price:
         raise HTTPException(
             status_code=400, 
             detail="El precio mínimo no puede ser mayor al máximo"
         )
     
-    filters = {k: v for k, v in locals().items() 
-               if v is not None and k not in ['limit', 'min_price', 'max_price']}
+    # Validación de rangos de metros cuadrados
+    if min_sqm and max_sqm and min_sqm > max_sqm:
+        raise HTTPException(
+            status_code=400, 
+            detail="Los metros mínimos no pueden ser mayores a los máximos"
+        )
     
-    # Agregar rangos de precio separadamente
-    if min_price is not None:
-        filters['precio_min'] = min_price
-    if max_price is not None:
-        filters['precio_max'] = max_price
-        
+    # Construir filtros excluyendo parámetros de control
+    filters = {k: v for k, v in locals().items() 
+               if v is not None and k not in ['limit']}
+    
+    # Mapear nombres de parámetros si es necesario (depende de tu base de datos)
+    if 'neighborhood' in filters:
+        filters['barrio'] = filters.pop('neighborhood')
+    if 'min_rooms' in filters:
+        filters['ambientes_min'] = filters.pop('min_rooms')
+    
+    print(f"🔍 FILTROS APLICADOS: {filters}")
     results = query_properties(filters)
+    print(f"📊 RESULTADOS OBTENIDOS: {len(results) if results else 0} propiedades")
+    
     return results[:limit]
+
 
 @app.get("/health")
 def health_check():
