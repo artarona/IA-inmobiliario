@@ -565,6 +565,9 @@
         </div>
 
         <!-- Área de Chat -->
+        
+        
+        <!-- Área de Chat -->
         <div class="chat-area">
             <div class="chat-header">
                 <h2>Asistente Inmobiliario</h2>
@@ -575,15 +578,18 @@
                 </div>
                 <button class="reset-chat" onclick="resetearChat()">Nueva Consulta</button>
             </div>
-            <!-- Mensaje de bienvenida -->
-            <!-- <div class="chat-box" id="chatBox">
+
+            <div class="chat-box" id="chatBox">
+                <!-- ELIMINAR EL MENSAJE DE BIENVENIDA ESTÁTICO -->
+                <!-- 
                 <div class="message msg-bot">
                     <b>ASISTENTE VIRTUAL</b>
                     ¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
                     Usá los filtros a la izquierda para buscar propiedades específicas 
                     o contame directamente qué estás buscando.
                 </div>
-            </div> -->
+                -->
+            </div>
 
             <!-- Indicador de typing -->
             <div class="typing-indicator" id="typingIndicator">
@@ -599,8 +605,8 @@
             <div class="input-area">
                 <div class="input-row">
                     <input type="text" id="userInput" 
-                           placeholder="Ej: 'Busco departamento con balcón en Almagro...'"
-                           autocomplete="off">
+                        placeholder="Ej: 'Busco departamento con balcón en Almagro...'"
+                        autocomplete="off">
                     <button id="sendBtn">Enviar</button>
                 </div>
             </div>
@@ -841,9 +847,11 @@
     }
 
     function showTypingIndicator() {
-        if (typingIndicator) {
+        if (typingIndicator && chatBox) {
             typingIndicator.style.display = 'flex';
             chatBox.scrollTop = chatBox.scrollHeight;
+        } else {
+            console.error('❌ Elementos no disponibles para mostrar indicador');
         }
     }
 
@@ -1097,15 +1105,29 @@
         statusText = document.getElementById('statusText');
         
         // Verificar que todos los elementos existan
-        if (!chatBox) console.error('❌ No se encontró chatBox');
-        if (!input) console.error('❌ No se encontró userInput');
-        if (!button) console.error('❌ No se encontró sendBtn');
-        if (!typingIndicator) console.error('❌ No se encontró typingIndicator');
-        if (!statusText) console.error('❌ No se encontró statusText');
+        console.log('🔍 Elementos DOM encontrados:', {
+            chatBox: !!chatBox,
+            input: !!input,
+            button: !!button,
+            typingIndicator: !!typingIndicator,
+            statusText: !!statusText
+        });
+        
+        if (!chatBox) {
+            console.error('❌ CRÍTICO: No se encontró chatBox. Revisar el HTML.');
+            // Intentar encontrar alternativas
+            chatBox = document.querySelector('.chat-box');
+            if (!chatBox) {
+                console.error('❌ No se pudo encontrar ningún elemento chat-box');
+                return;
+            }
+        }
         
         // Configurar event listeners
         if (button) {
             button.addEventListener('click', send);
+        } else {
+            console.error('❌ No se encontró el botón de enviar');
         }
         
         if (input) {
@@ -1115,11 +1137,20 @@
                 }
             });
             input.focus();
+        } else {
+            console.error('❌ No se encontró el input de usuario');
         }
         
         // Inicializar componentes
         cargarFiltrosDinamicos();
         checkServerStatus();
+        
+        // Agregar mensaje de bienvenida inicial después de 1 segundo
+        setTimeout(() => {
+            if (chatBox) {
+                addMessage('¡Hola! 👋 Soy tu asistente de Dante Propiedades. Te ayudo a encontrar la propiedad ideal. ¿En qué puedo ayudarte hoy?', 'bot');
+            }
+        }, 1000);
     });
 
     // Verificar estado del servidor
