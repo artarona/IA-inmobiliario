@@ -1,4 +1,3 @@
-// chat.js
 import { obtenerFiltrosSeleccionados, limpiarFiltros } from './filtros.js';
 import { enviarConsultaAlBackend, obtenerRespuestaDemo } from './backend.js';
 
