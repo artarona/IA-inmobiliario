@@ -45,6 +45,35 @@
         }
 
         .filters-header {
+            display: flex;
+            align-items: center;        /* centra verticalmente */
+            justify-content: space-between;
+            background-color: var(--azul);
+            padding: 10px 20px;
+            }
+
+        .logo-container {
+            display: flex;
+            align-items: center;        /* logo y texto en la misma línea */
+            }
+
+        .filters-logo {
+            height: 100%;               /* ocupa el alto del header */
+            max-height: 50px;           /* límite opcional */
+            margin-right: 10px;         /* espacio entre logo y texto */
+            }
+
+        .logo-container h1,
+        .filters-title,
+        .filters-loading {
+            color: var(--rojo);         /* texto en rojo */
+            text-align: center;
+            }    
+        
+        
+        
+   /*        
+        .filters-header {
             text-align: center;
             margin-bottom: 25px;
             padding-bottom: 20px;
@@ -69,6 +98,10 @@
             color: var(--azul)    ;
             font-weight: 700;
         }
+ */
+
+
+
 
         .filters-title {
             font-size: 16px;
@@ -173,15 +206,8 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
         }
- /*
-        .chat-header {
-            background: linear-gradient(135deg, var(--rojo)    0%, var(--azul) 100%);
-            color: white;
-            padding: 20px 30px;
-            text-align: center;
-            position: relative;
-        }
-*/
+
+
         .chat-header {
             display: flex;
             align-items: center;        /* centra verticalmente */
@@ -220,18 +246,6 @@
             color: #fff;
             }
 
-
- /*
-        .chat-header h2 {
-            font-size: 22px;
-            margin-bottom: 5px;
-        }
-
-        .chat-subtitle {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-*/
 
 
         .status-indicator {
@@ -629,7 +643,7 @@
     <div class="app-container">
         <!-- Panel de Filtros - ÚNICA VERSIÓN -->
         <div class="filters-panel">
-            <div class="filters-header">
+            <!--<div class="filters-header">
                 <div class="logo-container">
                     <h1>Dante Propiedades</h1>
                 </div>
@@ -637,7 +651,25 @@
                 <div class="filters-loading" id="filtersLoading">
                     <small>🔄 Cargando filtros...</small>
                 </div>
+            </div> -->
+
+            <div class="filters-header">
+   
+                <div class="logo-container">
+                    <img src="llave.png" alt="Logo Dante Propiedades" class="filters-logo">
+                    <h1>Dante Propiedades</h1>
+                </div>
+
+                <div class="filters-title">Filtros de Búsqueda</div>
+
+                <div class="filters-loading" id="filtersLoading">
+                    <small>🔄 Cargando filtros...</small>
+                </div>
             </div>
+
+
+
+
 
             <!-- Operación -->
             <div class="filter-group">
@@ -702,15 +734,6 @@
 
         <!-- Área de Chat -->
         <div class="chat-area">
-            <!-- <div class="chat-header">
-                <h2>Asistente Inmobiliario</h2>
-                <div class="chat-subtitle">Encontrá la propiedad perfecta para vos</div>
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span id="statusText">Conectado</span>
-                </div>
-                <button class="reset-chat" onclick="resetearChat()">Nueva Consulta</button>
-            </div> -->
 
             <div class="chat-header">
                 <!-- Logo a la izquierda -->
