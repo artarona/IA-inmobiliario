@@ -97,10 +97,11 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
     whatsapp_tone = channel == "whatsapp"
 
     if property_details:
-        # ... (código existente) ...
+        # ... (código existente para property_details) ...
         pass
     
     if results is not None and results:
+        # ✅ NUEVA VERSIÓN - SIN LISTAR PROPIEDADES EN EL TEXTO
         property_emojis = {
             'casa': '🏠',
             'departamento': '🏢', 
@@ -112,47 +113,61 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
             'galpon': '🏭'
         }
         
-        properties_list = []
-        for i, r in enumerate(results[:6]):
-            emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
-            
-            moneda = r.get('moneda_precio', 'USD')
-            if moneda == 'USD':
-                precio_formateado = f"USD {r['precio']:,.0f}" if r['precio'] > 0 else "Consultar"
-            else:
-                precio_formateado = f"${r['precio']:,.0f} {moneda}" if r['precio'] > 0 else "Consultar"
-            
-            # ✅ NUMERACIÓN SOLO CON NÚMERO EN NEGRITA - SIN EMOJI 🔢
-            # property_info = f" {i+1}. {emoji} {r['titulo']} \n"
-            property_info = f" <b><span style='font-size:18px'>{i+1}</span></b>. {emoji} {r['titulo']} <br>"
-            property_info += f"   📍 {r['barrio']}\n"
-            property_info += f"   💰 {precio_formateado}\n" 
-            property_info += f"   🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
-            property_info += f"   📋 {r['operacion'].title()} | {r['tipo'].title()}"
-
-            if r.get('descripcion'):
-                desc = r['descripcion'][:100] + '...' if len(r.get('descripcion', '')) > 100 else r['descripcion']
-                property_info += f"\n   💬 {desc}"
-            
-            properties_list.append(property_info)
-        
-        properties_formatted = "\n\n".join(properties_list)
+        # Solo obtener información general para contexto, NO para mostrar
+        tipos = list(set([r.get('tipo', '').title() for r in results if r.get('tipo')]))
+        barrios = list(set([r.get('barrio', '') for r in results if r.get('barrio')]))
+        operaciones = list(set([r.get('operacion', '').title() for r in results if r.get('operacion')]))
         
         return (
             f"El usuario busca: '{user_text}'\n\n"
             f"ENCONTRÉ {len(results)} PROPIEDADES que coinciden. "
-            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA CON ESTE FORMATO EXACTO:**\n\n"
-            f"¡Hola! 👋 Encontré {len(results)} propiedades que coinciden con tu búsqueda:\n\n"
-            f"{properties_formatted}\n\n"
-            f"Instrucciones específicas:\n"
-            f"1. Comienza con saludo mencionando {len(results)} propiedades encontradas\n"
-            f"2. USA SOLO EL NÚMERO EN NEGRITA (1., 2., 3.) para cada propiedad - SIN EMOJI 🔢\n"
-            f"3. MANTÉN los emojis específicos para cada tipo de propiedad (🏠, 🏢, 💼, etc.)\n"
-            f"4. LISTA todas las propiedades exactamente como se muestran arriba\n"
-            f"5. Termina ofreciendo ayuda para más detalles\n"
-            f"6. NO repitas el mensaje de bienvenida\n"
-            f"7. Mantén un tono profesional pero amigable\n\n"
-            f"¡IMPORTANTE: Solo el número en negrita, sin 🔢!"
+            f"**IMPORTANTE: Las propiedades se muestran en TARJETAS VISUALES en la interfaz - NO las listes en el texto.**\n\n"
+            f"INFORMACIÓN PARA CONTEXTO (NO mostrar al usuario):\n"
+            f"- Total propiedades: {len(results)}\n"
+            f"- Tipos: {', '.join(tipos) if tipos else 'Varios'}\n"
+            f"- Barrios: {', '.join(barrios) if barrios else 'Varias zonas'}\n"
+            f"- Operaciones: {', '.join(operaciones) if operaciones else 'Varias'}\n\n"
+            f"INSTRUCCIONES ESPECÍFICAS:\n"
+            f"1. Da un mensaje BREVE confirmando que encontraste propiedades\n"
+            f"2. NO listes las propiedades individualmente\n"
+            f"3. NO uses números (1., 2., 3.) ni detalles específicos\n"
+            f"4. NO uses emojis de propiedades (🏠, 📍, 💰, 🏢, 📐) en el texto\n"
+            f"5. Puedes mencionar patrones generales (ej: 'propiedades en venta', 'varios barrios')\n"
+            f"6. Invita al usuario a ver las propiedades en las tarjetas visuales\n"
+            f"7. Ofrece ayuda para refinar o preguntar sobre propiedades específicas\n"
+            f"8. Mantén un tono {'breve y directo' if whatsapp_tone else 'profesional y cálido'}\n\n"
+            f"EJEMPLOS DE RESPUESTAS ADECUADAS:\n"
+            f"- '¡Perfecto! Encontré {len(results)} propiedades que coinciden con tu búsqueda. Te las muestro abajo 👇'\n"
+            f"- 'Excelente, tengo {len(results)} opciones que podrían interesarte. Las ves en las tarjetas?'\n"
+            f"- 'Encontré propiedades que coinciden con lo que buscas. ¿Te gustaría que ajuste algún filtro?'\n\n"
+            f"¡RESPONDE SOLO CON UN MENSAJE BREVE SIN LISTAR PROPIEDADES!"
         )
     
-    # ... (resto del código igual)
+    # Si no hay resultados
+    elif results is not None and not results:
+        return (
+            f"El usuario busca: '{user_text}'\n\n"
+            f"NO SE ENCONTRARON PROPIEDADES con los filtros actuales.\n\n"
+            f"INSTRUCCIONES:\n"
+            f"1. Informa amablemente que no hay resultados\n"
+            f"2. Sugiere ajustar filtros o ampliar la búsqueda\n"
+            f"3. Pregunta por preferencias más específicas\n"
+            f"4. Ofrece ayuda para refinar la búsqueda\n"
+            f"5. Mantén un tono positivo y útil\n\n"
+            f"Filtros aplicados: {filters}\n\n"
+            f"Ejemplo: 'No encontré propiedades con esos filtros. ¿Querés probar con otros barrios o precios?'"
+        )
+    
+    # Para consultas generales sin búsqueda
+    else:
+        return (
+            f"El usuario dice: '{user_text}'\n\n"
+            f"Esta es una consulta general o conversacional.\n\n"
+            f"INSTRUCCIONES:\n"
+            f"1. Responde de manera natural y útil\n"
+            f"2. Si es sobre tipos de propiedades, sugiere usar los filtros\n"
+            f"3. Si es una pregunta específica, responde concisamente\n"
+            f"4. Invita a realizar una búsqueda si es apropiado\n"
+            f"5. Mantén un tono {'breve y directo' if whatsapp_tone else 'profesional y cálido'}\n\n"
+            f"{style_hint}"
+        )
