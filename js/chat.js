@@ -96,7 +96,6 @@ export function resetearChat() {
 function mostrarPropiedadesEnInterfaz(propiedades) {
     console.log("🖥️ MOSTRANDO PROPIEDADES EN INTERFAZ");
     
-    // Buscar o crear contenedor de propiedades
     let propiedadesContainer = document.getElementById('propiedadesContainer');
     
     if (!propiedadesContainer) {
@@ -106,17 +105,29 @@ function mostrarPropiedadesEnInterfaz(propiedades) {
         chatBox.appendChild(propiedadesContainer);
     }
     
-    // Limpiar contenedor
-    propiedadesContainer.innerHTML = '';
+    propiedadesContainer.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">🏠 Propiedades Encontradas</h3>';
     
-    // Crear elementos para cada propiedad
-    propiedades.forEach(prop => {
+    // ✅ EMOJIS DINÁMICOS POR TIPO
+    const propertyEmojis = {
+        'casa': '🏠',
+        'departamento': '🏢', 
+        'ph': '🏡',
+        'terreno': '📐',
+        'oficina': '💼',
+        'casaquinta': '🏘️',
+        'local': '🏪',
+        'galpon': '🏭'
+    };
+    
+    propiedades.forEach((prop, index) => {
+        const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
+        
         const propElement = document.createElement('div');
         propElement.className = 'propiedad-card';
         propElement.innerHTML = `
             <div class="propiedad-header">
-                <h4>${prop.titulo}</h4>
-                <span class="precio">$${prop.precio} ${prop.moneda_precio || 'USD'}</span>
+                <h4>${index + 1}. ${emoji} ${prop.titulo}</h4>
+                <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
             </div>
             <div class="propiedad-info">
                 <span>📍 ${prop.barrio}</span>
@@ -130,4 +141,15 @@ function mostrarPropiedadesEnInterfaz(propiedades) {
     });
     
     console.log(`✅ ${propiedades.length} propiedades mostradas en interfaz`);
+}
+
+// ✅ FUNCIÓN PARA FORMATEAR PRECIOS
+function formatPrecio(precio, moneda) {
+    if (!precio || precio === 0) return 'Consultar';
+    
+    if (moneda === 'USD') {
+        return `USD ${precio.toLocaleString('es-AR')}`;
+    } else {
+        return `$${precio.toLocaleString('es-AR')} ${moneda || 'ARS'}`;
+    }
 }
