@@ -96,34 +96,7 @@ def get_fallback_response():
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
 
-    if property_details:
-        detalles = f"""
-Título: {property_details.get('titulo', 'N/A')}
-Barrio: {property_details.get('barrio', 'N/A')}
-Precio: {property_details.get('moneda_precio', 'USD')} {property_details.get('precio', 'N/A'):,}
-Ambientes: {property_details.get('ambientes', 'N/A')}
-Metros cuadrados: {property_details.get('metros_cuadrados', 'N/A')}m²
-Operación: {property_details.get('operacion', 'N/A')}
-Tipo: {property_details.get('tipo', 'N/A')}
-Descripción: {property_details.get('descripcion', 'N/A')}
-Dirección: {property_details.get('direccion', 'N/A')}
-Antigüedad: {property_details.get('antiguedad', 'N/A')} años
-Expensas: {property_details.get('moneda_expensas', 'ARS')} {property_details.get('expensas', 'N/A')}
-Amenities: {property_details.get('amenities', 'N/A')}
-Cochera: {property_details.get('cochera', 'No')}
-Balcón: {property_details.get('balcon', 'No')}
-Pileta: {property_details.get('pileta', 'No')}
-Aire acondicionado: {property_details.get('aire_acondicionado', 'No')}
-Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
-"""
-        return (
-            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre una propiedad específica:\n"
-            + detalles
-            + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara. "
-            "Destacá las características más importantes según el tipo de propiedad."
-            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-    
+    # ✅ FORZAR QUE LA IA LISTE LAS PROPIEDADES EN SU RESPUESTA
     if results is not None and results:
         property_emojis = {
             'casa': '🏠',
@@ -135,36 +108,41 @@ Acepta mascotas: {property_details.get('acepta_mascotas', 'No')}
         }
         
         properties_list = []
-        for i, r in enumerate(results[:6]):
+        for i, r in enumerate(results[:6]):  # Mostrar máximo 6 propiedades
             emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
             moneda = r.get('moneda_precio', 'USD')
             precio = f"{moneda} {r['precio']:,}" if r['precio'] > 0 else "Consultar"
             
             property_info = f"{emoji} **{r['titulo']}**\n"
-            property_info += f"   • 📍 {r['barrio']}\n"
-            property_info += f"   • 💰 {precio}\n"
-            property_info += f"   • 🏠 {r['ambientes']} amb | {r['metros_cuadrados']} m²\n"
-            property_info += f"   • 📋 {r['operacion'].title()} | {r['tipo'].title()}"
+            property_info += f"📍 {r['barrio']} | 💰 {precio}\n"
+            property_info += f"🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
+            property_info += f"📋 {r['operacion'].title()} | {r['tipo'].title()}"
             
             if r.get('descripcion'):
-                desc = r['descripcion'][:60] + '...' if len(r.get('descripcion', '')) > 60 else r['descripcion']
-                property_info += f"\n   • 📝 {desc}"
+                desc = r['descripcion'][:80] + '...' if len(r.get('descripcion', '')) > 80 else r['descripcion']
+                property_info += f"\n📝 {desc}"
             
             properties_list.append(property_info)
         
         properties_formatted = "\n\n".join(properties_list)
         
+        # ✅ PROMPT MEJORADO - La IA DEBE incluir las propiedades en su respuesta
         return (
-            style_hint + f"\n\n👋 ¡Hola! Encontré estas propiedades que podrían interesarte:\n\n"
-            + properties_formatted
-            + "\n\n💡 **Para refinar la búsqueda, podés:**\n"
-            + "- Especificar el tipo de propiedad (casa, depto, terreno, oficina)\n"
-            + "- Indicar el rango de precio en USD o pesos\n" 
-            + "- Elegir la zona o barrio preferido\n"
-            + "- Decir la cantidad de ambientes necesarios\n\n"
-            + "¿Te interesa alguna en particular? Podés pedir más detalles."
-            + ("\nUsá emojis para hacerlo más amigable." if whatsapp_tone else "")
+            f"El usuario busca: '{user_text}'\n\n"
+            f"ENCONTRÉ {len(results)} PROPIEDADES que coinciden. "
+            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA:**\n\n"
+            f"{properties_formatted}\n\n"
+            f"Instrucciones para tu respuesta:\n"
+            f"1. Comienza saludando cálidamente\n"
+            f"2. MENCIONA que encontraste {len(results)} propiedades\n"  
+            f"3. LISTA todas las propiedades mostradas arriba\n"
+            f"4. Ofrece ayuda para más detalles\n"
+            f"5. Mantén un tono {'cercano con emojis' if whatsapp_tone else 'profesional'}\n\n"
+            f"¡NO omitas la lista de propiedades en tu respuesta!"
         )
+    
+    # ... (el resto del código para otros casos permanece igual)
+    
     elif results is not None:
         return (
             f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
