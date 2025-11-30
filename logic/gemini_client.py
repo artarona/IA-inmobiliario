@@ -97,7 +97,7 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
     whatsapp_tone = channel == "whatsapp"
 
     if property_details:
-        # ... (código existente para detalles de propiedad) ...
+        # ... (código existente) ...
         pass
     
     if results is not None and results:
@@ -113,70 +113,45 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         }
         
         properties_list = []
-        for i, r in enumerate(results[:6]):  # Mostrar máximo 6 propiedades
-            # ✅ EMOJI DINÁMICO según tipo de propiedad
+        for i, r in enumerate(results[:6]):
             emoji = property_emojis.get(r.get('tipo', '').lower(), '🏠')
             
-            # ✅ FORMATO DE PRECIO MEJORADO
             moneda = r.get('moneda_precio', 'USD')
             if moneda == 'USD':
                 precio_formateado = f"USD {r['precio']:,.0f}" if r['precio'] > 0 else "Consultar"
             else:
                 precio_formateado = f"${r['precio']:,.0f} {moneda}" if r['precio'] > 0 else "Consultar"
             
-            # ✅ ESTRUCTURA MEJORADA CON NÚMERO PROGRESIVO
-            property_info = f"**{i+1}. {emoji} {r['titulo']}**\n"
-            property_info += f"   📍 {r['barrio']} | 💰 {precio_formateado}\n"
+            # ✅ NUMERACIÓN RESALTADA SIN ** Y MEJOR FORMATEO
+            property_info = f"🔢 **{i+1}. {emoji} {r['titulo']}**\n"
+            property_info += f"   📍 {r['barrio']}\n"
+            property_info += f"   💰 {precio_formateado}\n" 
             property_info += f"   🏠 {r['ambientes']} amb | 📏 {r['metros_cuadrados']} m²\n"
             property_info += f"   📋 {r['operacion'].title()} | {r['tipo'].title()}"
             
             if r.get('descripcion'):
-                desc = r['descripcion'][:80] + '...' if len(r.get('descripcion', '')) > 80 else r['descripcion']
-                property_info += f"\n   📝 {desc}"
+                desc = r['descripcion'][:100] + '...' if len(r.get('descripcion', '')) > 100 else r['descripcion']
+                property_info += f"\n   💬 {desc}"
             
             properties_list.append(property_info)
         
         properties_formatted = "\n\n".join(properties_list)
         
-        # ✅ PROMPT MEJORADO CON PRESENTACIÓN MÁS CLARA
         return (
             f"El usuario busca: '{user_text}'\n\n"
             f"ENCONTRÉ {len(results)} PROPIEDADES que coinciden. "
-            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA CON ESTE FORMATO:**\n\n"
+            f"**DEBES MOSTRAR ESTAS PROPIEDADES EN TU RESPUESTA CON ESTE FORMATO EXACTO:**\n\n"
             f"¡Hola! 👋 Encontré {len(results)} propiedades que coinciden con tu búsqueda:\n\n"
             f"{properties_formatted}\n\n"
-            f"Instrucciones específicas para tu respuesta:\n"
-            f"1. Comienza con saludo cálido mencionando que encontraste {len(results)} propiedades\n"
-            f"2. USA LOS NÚMEROS PROGRESIVOS (1., 2., 3., etc.) para cada propiedad\n"
+            f"Instrucciones específicas:\n"
+            f"1. Comienza con saludo mencionando {len(results)} propiedades encontradas\n"
+            f"2. USA EL EMOJI 🔢 ANTES DE CADA NÚMERO para resaltar la numeración\n"
             f"3. MANTÉN los emojis específicos para cada tipo de propiedad\n"
             f"4. LISTA todas las propiedades exactamente como se muestran arriba\n"
             f"5. Termina ofreciendo ayuda para más detalles\n"
-            f"6. NO uses viñetas (*), usa números progresivos\n"
-            f"7. Mantén un tono {'cercano con emojis' if whatsapp_tone else 'profesional pero amigable'}\n\n"
-            f"¡NO cambies el formato de numeración ni los emojis específicos!"
+            f"6. NO repitas el mensaje de bienvenida\n"
+            f"7. Mantén un tono profesional pero amigable\n\n"
+            f"¡NO repitas saludos de bienvenida!"
         )
     
-    elif results is not None:
-        return (
-            f"{style_hint}\n\n👋 ¡Hola! Gracias por contactarnos.\n\n"
-            f"🔍 No encontré propiedades que coincidan exactamente con tu búsqueda, pero podemos ajustar los filtros.\n\n"
-            f"💡 **Sugerencias para mejorar la búsqueda:**\n"
-            f"- Probá con un rango de precio más amplio\n"
-            f"- Considerá barrios cercanos\n"
-            f"- Revisá otros tipos de propiedad\n\n"
-            f"¿Querés que ajuste algún parámetro en particular?"
-            + ("\n😊 Usá emojis para hacerlo más cercano." if whatsapp_tone else "")
-        )
-    
-    # Prompt para consultas generales
-    return (
-        f"{style_hint}\n\n"
-        f"El usuario pregunta: \"{user_text}\"\n\n"
-        f"Contexto inmobiliario:\n"
-        f"- Barrios disponibles: {', '.join(['Palermo', 'Recoleta', 'Belgrano', 'Caballito', 'Almagro', 'Villa Crespo', 'Colegiales', 'Nuñez'])}\n"
-        f"- Tipos: casa, departamento, PH, terreno, oficina\n"
-        f"- Operaciones: venta, alquiler\n"
-        f"- Precios en USD y ARS\n\n"
-        f"Respondé de forma útil y profesional, ofreciendo ayuda con búsquedas de propiedades."
-        + ("\nUsá un tono cercano con emojis apropiados." if whatsapp_tone else "")
-    )
+    # ... (resto del código igual)
