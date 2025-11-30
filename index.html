@@ -66,13 +66,13 @@
 
         .logo-container h1 {
             font-size: 20px;
-            color: #232deb;
+            color: var(--azul)    ;
             font-weight: 700;
         }
 
         .filters-title {
             font-size: 16px;
-            color: #ff0101;
+            color: var(--rojo);
             font-weight: 500;
         }
 
@@ -113,7 +113,7 @@
         }
 
         .filter-select:focus, .filter-input:focus {
-            border-color: #007bff;
+            border-color: var(--azul);
             outline: none;
             box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
         }
@@ -152,7 +152,7 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+            box-shadow: 0 6px 20px --azul(0,123,255,0.4);
         }
 
         .btn-secondary {
@@ -175,7 +175,7 @@
         }
 
         .chat-header {
-            background: linear-gradient(135deg, #ff0101 0%, #007bff 100%);
+            background: linear-gradient(135deg, --rojo    0%, --azul 100%);
             color: white;
             padding: 20px 30px;
             text-align: center;
