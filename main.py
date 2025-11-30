@@ -4,20 +4,16 @@ Backend para Dante Propiedades - Asistente Inmobiliario con IA
 import os
 import re
 import json
-import logging
 import time
 from functools import lru_cache
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.openapi.utils import get_openapi
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from fastapi import Query
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
 
 # Importar lógica de negocio
 from logic.database import (
@@ -77,6 +73,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Servir archivos estáticos de la carpeta 'imgs'
+app.mount("/imgs", StaticFiles(directory="imgs"), name="images")
 
 # ✅ CACHE
 query_cache = {}
@@ -148,13 +147,8 @@ class PropertyResponse(BaseModel):
 def root():
     return FileResponse("index.html")
 
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-
-
-@app.post("/chat")
-@limiter.limit("10/minute")
-async def chat(request: ChatRequest, request: Request):
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
     start_time = time.time()
     metrics.increment_requests()
     
@@ -173,15 +167,11 @@ async def chat(request: ChatRequest, request: Request):
         detected_filters = detect_filters(text_lower)
         filters.update(detected_filters)
 
-        # En lugar de múltiples prints, podrías usar logging estructurado
-        
-        logger = logging.getLogger(__name__)
-
-        # Reemplazar prints con:
-        logger.info(f"Consulta usuario: '{user_text}'", extra={
-            "filtros_detectados": detected_filters,
-            "filtros_frontend": filters_from_frontend
-        })
+        # ✅ AGREGAR DIAGNÓSTICO AQUÍ
+        print(f"🎯 CONSULTA USUARIO: '{user_text}'")
+        print(f"🔍 FILTROS DETECTADOS: {detected_filters}")
+        print(f"🔍 FILTROS FRONTEND: {filters_from_frontend}")
+        print(f"🔍 FILTROS COMBINADOS: {filters}")
 
         results = None
         search_performed = False
@@ -251,7 +241,6 @@ async def chat(request: ChatRequest, request: Request):
         metrics.increment_failures()
         print(f"❌ ERROR en endpoint /chat: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Ocurrió un error procesando tu consulta.")
-
 @app.get("/filters")
 def get_all_filters():
     """Endpoint para obtener filtros estáticos desde filter_data."""
@@ -263,74 +252,14 @@ def get_all_filters():
 
 @app.get("/properties", response_model=List[PropertyResponse])
 def get_properties_endpoint(
-    neighborhood: Optional[str] = Query(None, description="Barrio de la propiedad"),
-    min_price: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
-    max_price: Optional[float] = Query(None, ge=0, description="Precio máximo"),
-    min_rooms: Optional[int] = Query(None, ge=0, description="Mínimo de ambientes"),
-    operacion: Optional[str] = Query(None, description="Tipo de operación (venta/alquiler)"),
-    tipo: Optional[str] = Query(None, description="Tipo de propiedad"),
-    min_sqm: Optional[float] = Query(None, ge=0, description="Metros cuadrados mínimos"),
-    max_sqm: Optional[float] = Query(None, ge=0, description="Metros cuadrados máximos"),
-    limit: int = Query(20, ge=1, le=100, description="Límite de resultados")
+    neighborhood: Optional[str] = None, min_price: Optional[float] = None, max_price: Optional[float] = None,
+    min_rooms: Optional[int] = None, operacion: Optional[str] = None, tipo: Optional[str] = None,
+    min_sqm: Optional[float] = None, max_sqm: Optional[float] = None, limit: int = 20
 ):
-    # Validación de rangos de precio
-    if min_price and max_price and min_price > max_price:
-        raise HTTPException(
-            status_code=400, 
-            detail="El precio mínimo no puede ser mayor al máximo"
-        )
-    
-    # Validación de rangos de metros cuadrados
-    if min_sqm and max_sqm and min_sqm > max_sqm:
-        raise HTTPException(
-            status_code=400, 
-            detail="Los metros mínimos no pueden ser mayores a los máximos"
-        )
-    
-    # Construir filtros excluyendo parámetros de control
-    filters = {k: v for k, v in locals().items() 
-               if v is not None and k not in ['limit']}
-    
-    # Mapear nombres de parámetros si es necesario (depende de tu base de datos)
-    if 'neighborhood' in filters:
-        filters['barrio'] = filters.pop('neighborhood')
-    if 'min_rooms' in filters:
-        filters['ambientes_min'] = filters.pop('min_rooms')
-    
-    print(f"🔍 FILTROS APLICADOS: {filters}")
+    filters = {k: v for k, v in locals().items() if v is not None and k != 'limit'}
     results = query_properties(filters)
     print(f"📊 RESULTADOS OBTENIDOS: {len(results) if results else 0} propiedades")
-    
     return results[:limit]
-
-
-@app.get("/health")
-def health_check():
-    """Health check más detallado"""
-    health_info = {
-        "status": "healthy",
-        "timestamp": time.time(),
-        "version": "1.1.0",
-        "database": "online" if os.path.exists(DB_PATH) else "offline",
-        "cache_size": len(query_cache),
-        "metrics": {
-            "uptime_seconds": metrics.get_uptime(),
-            "total_requests": metrics.requests_count,
-            "success_rate": f"{(metrics.successful_requests / metrics.requests_count * 100) if metrics.requests_count > 0 else 0:.1f}%"
-        }
-    }
-    
-    # Verificar recursos críticos
-    try:
-        # Test conexión base de datos
-        test_results = query_properties({}, limit=1)
-        health_info["database_query"] = "working"
-    except Exception as e:
-        health_info["database_query"] = f"error: {str(e)}"
-        health_info["status"] = "degraded"
-    
-    return health_info
-
 
 @app.get("/status")
 def status():
@@ -341,45 +270,6 @@ def status():
         "gemini_calls": metrics.gemini_calls,
         "search_queries": metrics.search_queries
     }
-def normalizar_filtros(filtros_detectados: Dict, filtros_frontend: Dict) -> Dict:
-    """Normaliza y combina filtros de diferentes fuentes"""
-    filtros_combinados = filtros_frontend.copy()
-    
-    # Priorizar filtros detectados en el texto sobre los del frontend
-    for key, value in filtros_detectados.items():
-        if value not in [None, "", []]:
-            filtros_combinados[key] = value
-    
-    # Validar valores de filtros
-    if 'barrio' in filtros_combinados and filtros_combinados['barrio'] not in BARRIOS:
-        logger.warning(f"Barrio no válido: {filtros_combinados['barrio']}")
-        del filtros_combinados['barrio']
-    
-    return filtros_combinados
-
-# Podrías hacerla más dinámica
-def generar_bienvenida(channel: str) -> str:
-    base_welcome = "¡Hola! 👋 Soy tu asistente de Dante Propiedades."
-    
-    if channel == "whatsapp":
-        return f"""{base_welcome}
-
-📱 Podés:
-• Describirme lo que buscás
-• Preguntar por precios, barrios, ambientes
-• Pedir fotos o detalles de propiedades
-
-¿Qué tipo de propiedad te interesa?"""
-    else:
-        return f"""{base_welcome}
-
-🏠 Te ayudo a encontrar la propiedad ideal. Podés:
-• Usar los filtros para búsquedas específicas  
-• Contarme directamente qué necesitás
-• Consultarme sobre propiedades que veas
-
-¿En qué puedo asistirte hoy?"""
-
 
 # ✅ INICIO
 if __name__ == "__main__":
