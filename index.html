@@ -481,7 +481,118 @@
         }   
 
 
+        /* Estilos para imágenes de propiedades */
+        .propiedad-imagenes {
+            margin: 10px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
 
+        .imagen-principal {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .imagen-principal img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .contador-imagenes {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .galeria-miniaturas {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            overflow-x: auto;
+        }
+
+        .galeria-miniaturas img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        .galeria-miniaturas img:hover,
+        .galeria-miniaturas img.activa {
+            border-color: #2c5aa0;
+        }
+
+        .sin-imagen {
+            text-align: center;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        /* Botones de acción */
+        .propiedad-acciones {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-ver-mas,
+        .btn-galeria {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-ver-mas {
+            background: #2c5aa0;
+            color: white;
+        }
+
+        .btn-galeria {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-ver-mas:hover {
+            background: #1e3d6f;
+        }
+
+        .btn-galeria:hover {
+            background: #1e7e34;
+        }
+
+        /* Mejoras para la tarjeta de propiedad */
+        .propiedad-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 12px 0;
+            background: white;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
 
 
