@@ -848,74 +848,80 @@
     }
 
     function formatPrecio(precio, moneda) {
-        if (!precio || isNaN(precio) || precio === 0) return 'Consultar';
-        const currency = moneda === 'ARS' ? 'ARS' : 'USD';
-        const formatter = new Intl.NumberFormat('es-AR', {
-            style: 'currency',
-            currency: currency,
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
-        return formatter.format(precio);
+    if (!precio || isNaN(precio) || precio === 0) return 'Consultar';
+    const currency = moneda === 'ARS' ? 'ARS' : 'USD';
+    const formatter = new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    });
+    
+    // ✅ QUITAR el símbolo de moneda porque ya tenemos el emoji 💰
+    let precioFormateado = formatter.format(precio);
+    if (currency === 'USD') {
+        precioFormateado = precioFormateado.replace('USD', '').trim();
+    } else {
+        precioFormateado = precioFormateado.replace('ARS', '').replace('$', '').trim();
     }
-
+    
+    return precioFormateado;
+}
     function mostrarPropiedadesEnInterfaz(propiedades) {
-        const container = document.createElement('div');
-        container.className = 'propiedades-container';
+    const container = document.createElement('div');
+    container.className = 'propiedades-container';
 
-        const titulo = document.createElement('h3');
-        titulo.textContent = `📊 ${propiedades.length} Propiedad(es) Encontrada(s)`;
-        titulo.style.marginBottom = '20px';
-        titulo.style.color = '#2c3e50';
-        titulo.style.textAlign = 'center';
-        container.appendChild(titulo);
+    const titulo = document.createElement('h3');
+    titulo.textContent = `📊 ${propiedades.length} Propiedad(es) Encontrada(s)`;
+    titulo.style.marginBottom = '20px';
+    titulo.style.color = '#2c3e50';
+    titulo.style.textAlign = 'center';
+    container.appendChild(titulo);
 
-        const propertyEmojis = {
-            'casa': '🏠', 'departamento': '🏢', 'ph': '🏡',
-            'terreno': '📐', 'oficina': '💼', 'casaquinta': '🏘️',
-            'local': '🏪', 'galpon': '🏭'
-        };
+    const propertyEmojis = {
+        'casa': '🏠', 'departamento': '🏢', 'ph': '🏡',
+        'terreno': '📐', 'oficina': '💼', 'casaquinta': '🏘️',
+        'local': '🏪', 'galpon': '🏭'
+    };
 
-        propiedades.forEach((prop, index) => {
-            const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
-            const card = document.createElement('div');
-            card.className = 'propiedad-card';
+    propiedades.forEach((prop, index) => {
+        const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
+        const card = document.createElement('div');
+        card.className = 'propiedad-card';
 
-            card.innerHTML = `
-                <div class="propiedad-header">
-                    <h4>${emoji} ${prop.titulo}</h4>
-                    <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
+        card.innerHTML = `
+            <div class="propiedad-header">
+                <h4>${emoji} ${prop.titulo}</h4>
+                <span class="precio">💰 ${formatPrecio(prop.precio, prop.moneda_precio)}</span>
+            </div>
+            <div class="propiedad-info">
+                <span>📍 ${prop.barrio}</span>
+                <span>🏠 ${prop.ambientes} amb</span>
+                <span>📏 ${prop.metros_cuadrados} m²</span>
+                <span>📋 ${prop.operacion}</span>
+            </div>
+            ${prop.descripcion ? `
+                <div class="descripcion">
+                    💬 ${prop.descripcion.substring(0, 120)}...
                 </div>
-                <div class="propiedad-info">
-                    <span>📍 ${prop.barrio}</span>
-                    <span>• ${prop.ambientes} amb</span>
-                    <span>• ${prop.metros_cuadrados} m²</span>
-                    <span>• ${prop.operacion}</span>
-                </div>
-                ${prop.descripcion ? `
-                    <div class="descripcion">
-                        📝 ${prop.descripcion.substring(0, 120)}...
-                    </div>
-                ` : ''}
-                <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
-                    <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
-                        🖼️ Ver Fotos
-                    </button>
-                    <small style="color: #666; font-size: 12px;">
-                        ${prop.fotos && prop.fotos.length > 0 ? 
-                        `📸 ${prop.fotos.length} foto(s)` : 
-                        '📷 Fotos próximamente'}
-                    </small>
-                </div>
-            `;
-            container.appendChild(card);
-        });
+            ` : ''}
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
+                    🖼️ Ver Fotos
+                </button>
+                <small style="color: #666; font-size: 12px;">
+                    ${prop.fotos && prop.fotos.length > 0 ? 
+                      `📸 ${prop.fotos.length} foto(s)` : 
+                      '📷 Fotos próximamente'}
+                </small>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 
     chatBox.appendChild(container);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-
-
 
 
     function showTypingIndicator(show) {
