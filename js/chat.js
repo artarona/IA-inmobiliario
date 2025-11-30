@@ -158,3 +158,132 @@ function formatPrecio(precio, moneda) {
         return `$${precio.toLocaleString('es-AR')} ${moneda || 'ARS'}`;
     }
 }
+// ✅ FUNCIÓN PARA MOSTRAR PROPIEDADES CON IMÁGENES
+function mostrarPropiedadesEnInterfaz(propiedades) {
+    console.log("🖥️ MOSTRANDO PROPIEDADES EN INTERFAZ CON IMÁGENES");
+    
+    let propiedadesContainer = document.getElementById('propiedadesContainer');
+    
+    if (!propiedadesContainer) {
+        propiedadesContainer = document.createElement('div');
+        propiedadesContainer.id = 'propiedadesContainer';
+        propiedadesContainer.className = 'propiedades-container';
+        chatBox.appendChild(propiedadesContainer);
+    }
+    
+    propiedadesContainer.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">🏠 Propiedades Encontradas</h3>';
+    
+    const propertyEmojis = {
+        'casa': '🏠',
+        'departamento': '🏢', 
+        'ph': '🏡',
+        'terreno': '📐',
+        'oficina': '💼',
+        'casaquinta': '🏘️',
+        'local': '🏪',
+        'galpon': '🏭'
+    };
+    
+    propiedades.forEach((prop, index) => {
+        const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
+        
+        const propElement = document.createElement('div');
+        propElement.className = 'propiedad-card';
+        
+        // ✅ GENERAR HTML CON IMÁGENES
+        propElement.innerHTML = generarHTMLPropiedad(prop, index, emoji);
+        
+        propiedadesContainer.appendChild(propElement);
+    });
+    
+    console.log(`✅ ${propiedades.length} propiedades mostradas en interfaz`);
+}
+
+// ✅ FUNCIÓN PARA GENERAR HTML DE PROPIEDAD CON IMÁGENES
+function generarHTMLPropiedad(prop, index, emoji) {
+    const tieneImagenes = prop.fotos && prop.fotos.length > 0;
+    const primeraImagen = tieneImagenes ? prop.fotos[0] : null;
+    const totalImagenes = tieneImagenes ? prop.fotos.length : 0;
+    
+    return `
+        <div class="propiedad-header">
+            <h4><span class="numero-propiedad">${index + 1}.</span> ${emoji} ${prop.titulo}</h4>
+            <span class="precio">${formatPrecio(prop.precio, prop.moneda_precio)}</span>
+        </div>
+        
+        ${tieneImagenes ? `
+        <div class="propiedad-imagenes">
+            <div class="imagen-principal">
+                <img src="${primeraImagen}" alt="${prop.titulo}" 
+                     onerror="this.style.display='none'" 
+                     onload="this.style.opacity='1'">
+                ${totalImagenes > 1 ? `
+                <div class="contador-imagenes">+${totalImagenes - 1} más</div>
+                ` : ''}
+            </div>
+            ${totalImagenes > 1 ? `
+            <div class="galeria-miniaturas">
+                ${prop.fotos.slice(0, 4).map((foto, i) => `
+                    <img src="${foto}" alt="Imagen ${i + 1}" 
+                         onerror="this.style.display='none'"
+                         onclick="cambiarImagenPrincipal('${foto}', this)">
+                `).join('')}
+            </div>
+            ` : ''}
+        </div>
+        ` : `
+        <div class="sin-imagen">
+            <span>📷 Imágenes no disponibles</span>
+        </div>
+        `}
+        
+        <div class="propiedad-info">
+            <span>📍 ${prop.barrio}</span>
+            <span>🏠 ${prop.ambientes} amb</span>
+            <span>📏 ${prop.metros_cuadrados} m²</span>
+            <span>📋 ${prop.operacion}</span>
+        </div>
+        
+        ${prop.descripcion ? `<p class="descripcion">${prop.descripcion}</p>` : ''}
+        
+        <div class="propiedad-acciones">
+            <button class="btn-ver-mas" onclick="verMasDetalles('${prop.id_temporal}')">
+                📋 Ver más detalles
+            </button>
+            ${tieneImagenes ? `
+            <button class="btn-galeria" onclick="abrirGaleriaCompleta('${prop.id_temporal}')">
+                🖼️ Ver galería completa (${totalImagenes})
+            </button>
+            ` : ''}
+        </div>
+    `;
+}
+// ✅ FUNCIONES PARA MANEJO DE IMÁGENES
+function cambiarImagenPrincipal(nuevaImagen, elementoClickeado) {
+    const contenedorPadre = elementoClickeado.closest('.propiedad-imagenes');
+    const imagenPrincipal = contenedorPadre.querySelector('.imagen-principal img');
+    
+    if (imagenPrincipal) {
+        imagenPrincipal.style.opacity = '0';
+        setTimeout(() => {
+            imagenPrincipal.src = nuevaImagen;
+            imagenPrincipal.style.opacity = '1';
+        }, 300);
+    }
+    
+    // Resaltar miniatura activa
+    const todasMiniaturas = contenedorPadre.querySelectorAll('.galeria-miniaturas img');
+    todasMiniaturas.forEach(img => img.classList.remove('activa'));
+    elementoClickeado.classList.add('activa');
+}
+
+function abrirGaleriaCompleta(idPropiedad) {
+    console.log(`🖼️ Abriendo galería completa para propiedad: ${idPropiedad}`);
+    alert(`📸 Galería completa de la propiedad ${idPropiedad}\n\nEsta funcionalidad se puede expandir para mostrar un modal con todas las imágenes.`);
+}
+
+function verMasDetalles(idPropiedad) {
+    console.log(`📋 Viendo más detalles para: ${idPropiedad}`);
+    // Aquí puedes implementar la lógica para mostrar detalles completos
+    alert(`🔍 Mostrando detalles completos de la propiedad ${idPropiedad}`);
+}
