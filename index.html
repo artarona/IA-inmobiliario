@@ -526,43 +526,56 @@
             padding-bottom: 20px;
         }
 
+        /* Mejoras para el modal de imágenes */
         .modal-content {
             margin: auto;
             padding: 20px;
-            width: 90%;
-            max-width: 800px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        
+
         .modal-images-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 25px;
         }
 
         .modal-images-container img {
             width: 100%;
+            max-width: 800px;
             height: auto;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease;
         }
-        
+
+        .modal-images-container img:hover {
+            transform: scale(1.02);
+        }
+
         .close-modal {
-            position: absolute;
-            top: 15px;
-            right: 35px;
+            position: fixed;
+            top: 20px;
+            right: 30px;
             color: #f1f1f1;
             font-size: 40px;
             font-weight: bold;
-            transition: 0.3s;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
+            z-index: 1001;
         }
 
-        .close-modal:hover,
-        .close-modal:focus {
-            color: #bbb;
-            text-decoration: none;
-            cursor: pointer;
+        .close-modal:hover {
+            background: rgba(0,0,0,0.7);
         }
     </style>
 </head>
@@ -705,69 +718,169 @@
     // LÓGICA DEL MODAL DE IMÁGENES (CORREGIDA)
     // ========================================
     function mostrarImagenesByIndex(index) {
-    const fotos = contextoActual.resultados[index]?.fotos;
-    
-    console.log(`[Diagnóstico] Intentando cargar imágenes para propiedad índice ${index}. URLs:`, fotos);
+        const fotos = contextoActual.resultados[index]?.fotos;
+        
+        console.log(`[Diagnóstico] Intentando cargar imágenes para propiedad índice ${index}. URLs:`, fotos);
 
-    const modal = document.getElementById('imageModal');
-    const modalImages = document.getElementById('modalImagesContainer');
-    
-    modalImages.innerHTML = ''; // Limpiar imágenes anteriores
-    
-    if (fotos && fotos.length > 0) {
-        fotos.forEach(fotoUrl => {
-            const img = document.createElement('img');
+        const modal = document.getElementById('imageModal');
+        const modalImages = document.getElementById('modalImagesContainer');
+        
+        // Mostrar loading mientras cargan
+        modalImages.innerHTML = `
+            <div style="text-align: center; color: white; padding: 40px;">
+                <div style="font-size: 24px; margin-bottom: 20px;">🔄</div>
+                <p>Cargando imágenes...</p>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+
+        // ✅ AGREGAR CONTADOR DE IMÁGENES
+        const counter = document.createElement('div');
+        counter.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+            font-weight: bold;
+        `;
+        counter.textContent = `📸 ${fotos ? fotos.length : 0} fotos`;
+        modal.appendChild(counter);
+
+        // Limpiar y cargar imágenes después de un breve delay
+        setTimeout(() => {
+            modalImages.innerHTML = '';
             
-            // ✅ CORRECCIÓN DEFINITIVA - Construir URL correcta
-            let imagenSrc = fotoUrl;
-            
-            // Caso 1: Si la ruta es "imgs/archivo.jpg" → "/imgs/archivo.jpg"
-            if (fotoUrl.startsWith('imgs/')) {
-                imagenSrc = `${API_BASE_URL}/${fotoUrl}`;
-            }
-            // Caso 2: Si es solo "archivo.jpg" → "/imgs/archivo.jpg"  
-            else if (!fotoUrl.includes('/') && fotoUrl.includes('.')) {
-                imagenSrc = `${API_BASE_URL}/imgs/${fotoUrl}`;
-            }
-            // Caso 3: Si ya es una URL completa, dejarla como está
-            else if (fotoUrl.startsWith('http')) {
-                imagenSrc = fotoUrl;
-            }
-            // Caso 4: Cualquier otro caso, asumir que está en /imgs/
-            else {
-                imagenSrc = `${API_BASE_URL}/imgs/${fotoUrl}`;
-            }
-            
-            console.log(`[Diagnóstico] Cargando imagen: ${imagenSrc}`);
-            img.src = imagenSrc;
-            img.alt = `Imagen de la propiedad`;
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            
-            // Manejador de error mejorado
-            img.onerror = () => {
-                console.error(`[Error] No se pudo cargar: ${imagenSrc}`);
-                img.alt = `Imagen no disponible: ${fotoUrl}`;
+            if (fotos && fotos.length > 0) {
+                let imagenesCargadas = 0;
+                const totalImagenes = fotos.length;
                 
-                // Placeholder elegante
-                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjRmNGY0Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+RXNwZXJhbmRvIGltw6FnZW5lczwvdGV4dD48L3N2Zz4=';
-            };
-            
-            // Manejador de éxito
-            img.onload = () => {
-                console.log(`[Éxito] Imagen cargada: ${imagenSrc}`);
-            };
-            
-            modalImages.appendChild(img);
-        });
-    } else {
-        modalImages.innerHTML = '<p style="color: white; text-align: center; font-size: 18px; padding: 40px;">No hay imágenes disponibles para esta propiedad.</p>';
+                fotos.forEach((fotoUrl, i) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.style.cssText = `
+                        position: relative;
+                        width: 100%;
+                        margin-bottom: 25px;
+                    `;
+                    
+                    // ✅ AGREGAR NÚMERO DE IMAGEN
+                    const imgNumber = document.createElement('div');
+                    imgNumber.style.cssText = `
+                        position: absolute;
+                        top: 10px;
+                        left: 10px;
+                        background: rgba(0,0,0,0.7);
+                        color: white;
+                        padding: 5px 12px;
+                        border-radius: 15px;
+                        font-size: 12px;
+                        z-index: 10;
+                        font-weight: bold;
+                    `;
+                    imgNumber.textContent = `${i + 1} / ${totalImagenes}`;
+                    imgContainer.appendChild(imgNumber);
+                    
+                    const img = document.createElement('img');
+                    
+                    // Construir URL correcta
+                    let imagenSrc = fotoUrl;
+                    if (fotoUrl.startsWith('imgs/')) {
+                        imagenSrc = `${API_BASE_URL}/${fotoUrl}`;
+                    } else if (!fotoUrl.includes('/') && fotoUrl.includes('.')) {
+                        imagenSrc = `${API_BASE_URL}/imgs/${fotoUrl}`;
+                    }
+                    
+                    img.src = imagenSrc;
+                    img.alt = `Imagen ${i + 1} de ${totalImagenes}`;
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    img.style.borderRadius = '8px';
+                    img.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                    img.style.display = 'block';
+                    
+                    // Manejador de carga exitosa
+                    img.onload = () => {
+                        imagenesCargadas++;
+                        console.log(`✅ Imagen ${imagenesCargadas}/${totalImagenes} cargada: ${imagenSrc}`);
+                        
+                        // Actualizar contador cuando todas carguen
+                        if (imagenesCargadas === totalImagenes) {
+                            counter.textContent = `📸 ${totalImagenes} fotos - Todas cargadas ✅`;
+                            modalImages.scrollTop = 0;
+                        }
+                    };
+                    
+                    // Manejador de error
+                    img.onerror = () => {
+                        imagenesCargadas++;
+                        console.log(`⚠️ Imagen no disponible: ${imagenSrc}`);
+                        
+                        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODg4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+SW1hZ2VuIG5vIGRpc3BvbmlibGU8L3RleHQ+PC9zdmc+';
+                        img.alt = 'Imagen no disponible';
+                        
+                        // Cambiar número a indicador de error
+                        imgNumber.innerHTML = `${i + 1} / ${totalImagenes} <span style="color: #ff6b6b;">⚠️</span>`;
+                    };
+                    
+                    imgContainer.appendChild(img);
+                    modalImages.appendChild(imgContainer);
+                });
+            } else {
+                modalImages.innerHTML = `
+                    <div style="text-align: center; color: white; padding: 40px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
+                        <h3>No hay imágenes disponibles</h3>
+                        <p>Esta propiedad no cuenta con fotos en este momento.</p>
+                    </div>
+                `;
+            }
+        }, 100);
+        
+        // ✅ LIMPIAR EL CONTADOR AL CERRAR EL MODAL
+        const cleanUp = () => {
+            if (modal.contains(counter)) {
+                modal.removeChild(counter);
+            }
+        };
+        
+        // Agregar event listener para limpiar al cerrar
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const originalOnClick = closeModalBtn.onclick;
+        closeModalBtn.onclick = () => {
+            cleanUp();
+            cerrarModal();
+            if (originalOnClick) originalOnClick();
+        };
+        
+        // También limpiar al hacer clic fuera del modal
+        const originalWindowOnClick = window.onclick;
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                cleanUp();
+                cerrarModal();
+            }
+            if (originalWindowOnClick) originalWindowOnClick(event);
+        };
     }
-    
-    modal.style.display = 'block';
-}
+
+
     function cerrarModal() {
         const modal = document.getElementById('imageModal');
+        
+        // Limpiar cualquier contador que pueda haber quedado
+        const counters = modal.querySelectorAll('[style*="position: fixed"][style*="top: 20px"]');
+        counters.forEach(counter => {
+            if (modal.contains(counter)) {
+                modal.removeChild(counter);
+            }
+        });
+    
         modal.style.display = 'none';
     }
 
