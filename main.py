@@ -100,13 +100,6 @@ def query_properties_cached(filters_json: str):
     return query_properties(filters)
 
 # ✅ MODELOS DE DATOS
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=1000)
-    channel: str = Field(default="web")
-    filters: Optional[Dict[str, Any]] = None
-    contexto_anterior: Optional[Dict[str, Any]] = None
-    es_seguimiento: Optional[bool] = False
-
 class PropertyResponse(BaseModel):
     id_temporal: str
     titulo: str
@@ -135,6 +128,13 @@ class PropertyResponse(BaseModel):
     moneda_precio: Optional[str] = None
     moneda_expensas: Optional[str] = None
     fecha_procesamiento: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=1000)
+    channel: str = Field(default="web")
+    filters: Optional[Dict[str, Any]] = None
+    contexto_anterior: Optional[Dict[str, Any]] = None
+    es_seguimiento: Optional[bool] = False
 
 class ChatResponse(BaseModel):
     response: str
