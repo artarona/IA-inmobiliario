@@ -46,32 +46,45 @@
 
         .filters-header {
             display: flex;
-            align-items: center;        /* centra verticalmente */
+            align-items: center;          /* centra verticalmente */
             justify-content: space-between;
             background-color: var(--azul);
             padding: 10px 20px;
+            overflow: hidden;             /* evita que el contenido se desborde */
             }
 
         .logo-container {
             display: flex;
-            align-items: center;        /* logo y texto en la misma línea */
+            align-items: center;
+            max-width: 40%;               /* límite de ancho para logo + texto */
+            overflow: hidden;
             }
 
         .filters-logo {
-            height: 100%;               /* ocupa el alto del header */
-            max-height: 50px;           /* límite opcional */
-            margin-right: 10px;         /* espacio entre logo y texto */
+            max-height: 40px;
+            margin-right: 10px;
             }
 
-        .logo-container h1,
-        .filters-title,
-        .filters-loading {
-            color: var(--rojo);         /* texto en rojo */
+        .logo-container h1 {
+            font-size: 1.5rem;            /* reduce tamaño del título */
+            color: var(--rojo);
+            white-space: nowrap;          /* evita salto de línea */
+            text-overflow: ellipsis;      /* agrega "..." si se corta */
+            overflow: hidden;
+            }
+
+        .filters-title {
+            flex: 1;
             text-align: center;
-            }    
-        
-        
-        
+            color: var(--rojo);
+            font-size: 1.2rem;
+            }
+
+        .filters-loading {
+            color: var(--rojo);
+            font-size: 0.9rem;
+            }
+            
    /*        
         .filters-header {
             text-align: center;
