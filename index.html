@@ -702,9 +702,12 @@
     let contextoActual = { tipo: null, resultados: [], propiedad_focus: null, filtros_usados: {}, timestamp: null };
 
     // ========================================
-    // LÓGICA DEL MODAL DE IMÁGENES
+    // LÓGICA DEL MODAL DE IMÁGENES (CORREGIDA)
     // ========================================
-    function mostrarImagenes(fotos) {
+    function mostrarImagenesByIndex(index) {
+        // Se busca la propiedad en el contexto guardado usando el índice
+        const fotos = contextoActual.resultados[index]?.fotos;
+
         const modal = document.getElementById('imageModal');
         const modalImages = document.getElementById('modalImagesContainer');
         
@@ -834,7 +837,6 @@
             const emoji = propertyEmojis[prop.tipo?.toLowerCase()] || '🏠';
             const card = document.createElement('div');
             card.className = 'propiedad-card';
-            const fotosString = JSON.stringify(prop.fotos || []);
 
             card.innerHTML = `
                 <div class="propiedad-header">
@@ -848,7 +850,7 @@
                     <span>• ${prop.operacion}</span>
                 </div>
                 ${prop.descripcion ? `<p class="descripcion">${prop.descripcion.substring(0, 120)}...</p>` : ''}
-                <button class="btn-imagenes" onclick='mostrarImagenes(${fotosString})'>
+                <button class="btn-imagenes" onclick='mostrarImagenesByIndex(${index})'>
                     Ver Imágenes
                 </button>
             `;
@@ -930,8 +932,10 @@
             if (data.response) {
                 addMessage(data.response);
                 if (data.propiedades && data.propiedades.length > 0) {
-                    mostrarPropiedadesEnInterfaz(data.propiedades);
+                    // Primero se actualiza el contexto
                     actualizarContexto(data.propiedades, filtrosSeleccionados, 'busqueda');
+                    // Luego se muestran las propiedades, que usarán el contexto actualizado
+                    mostrarPropiedadesEnInterfaz(data.propiedades);
                 } else {
                     actualizarContexto([], filtrosSeleccionados, 'busqueda_sin_resultados');
                 }
