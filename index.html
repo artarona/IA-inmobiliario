@@ -705,8 +705,10 @@
     // LÓGICA DEL MODAL DE IMÁGENES (CORREGIDA)
     // ========================================
     function mostrarImagenesByIndex(index) {
-        // Se busca la propiedad en el contexto guardado usando el índice
         const fotos = contextoActual.resultados[index]?.fotos;
+        
+        // LÍNEA DE DIAGNÓSTICO AÑADIDA
+        console.log(`[Diagnóstico] Intentando cargar imágenes para propiedad índice ${index}. URLs:`, fotos);
 
         const modal = document.getElementById('imageModal');
         const modalImages = document.getElementById('modalImagesContainer');
@@ -717,6 +719,11 @@
             fotos.forEach(fotoUrl => {
                 const img = document.createElement('img');
                 img.src = fotoUrl;
+                // Añadir un manejador de error por si la imagen no carga
+                img.onerror = () => {
+                    img.alt = `No se pudo cargar la imagen en la ruta: ${fotoUrl}`;
+                    console.error(`[Diagnóstico] 404 - No se encontró la imagen en: ${fotoUrl}`);
+                };
                 modalImages.appendChild(img);
             });
         } else {
