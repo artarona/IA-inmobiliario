@@ -96,13 +96,18 @@ def initialize_databases():
             # Insertar propiedades
             for prop in propiedades:
                 try:
+                    # Convertir listas a JSON strings
+                    fotos_json = json.dumps(prop.get('fotos', []))
+                    videos_json = json.dumps(prop.get('videos', []))
+                    documentos_json = json.dumps(prop.get('documentos', []))
+
                     cursor.execute('''
                         INSERT INTO properties (
                             id_temporal, titulo, barrio, precio, ambientes, metros_cuadrados,
                             descripcion, operacion, tipo, direccion, antiguedad, expensas,
                             cochera, balcon, pileta, acepta_mascotas, aire_acondicionado,
-                            moneda_precio, moneda_expensas
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            moneda_precio, moneda_expensas, fotos, videos, documentos
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         prop.get('id_temporal', f"prop_{hash(prop.get('titulo', ''))}"),
                         prop['titulo'], prop['barrio'], prop['precio'],
@@ -111,7 +116,8 @@ def initialize_databases():
                         prop.get('antiguedad'), prop.get('expensas'), prop.get('cochera'),
                         prop.get('balcon'), prop.get('pileta'), prop.get('acepta_mascotas'),
                         prop.get('aire_acondicionado'), prop.get('moneda_precio', 'USD'),
-                        prop.get('moneda_expensas', 'ARS')
+                        prop.get('moneda_expensas', 'ARS'),
+                        fotos_json, videos_json, documentos_json
                     ))
                 except Exception as e:
                     print(f"⚠️ Error cargando propiedad {prop.get('titulo', 'N/A')}: {e}")
@@ -283,7 +289,20 @@ def query_properties(filters: Dict[str, Any]) -> List[Dict]:
             query += " ORDER BY precio ASC"
                 
             cursor.execute(query, params)
-            results = [dict(row) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            
+            results = []
+            for row in rows:
+                prop = dict(row)
+                # Parsear campos JSON
+                for key in ['fotos', 'videos', 'documentos']:
+                    if key in prop and isinstance(prop[key], str):
+                        try:
+                            prop[key] = json.loads(prop[key])
+                        except json.JSONDecodeError:
+                            prop[key] = [] # Dejar como lista vacía si el parseo falla
+                results.append(prop)
+
             print(f"🔍 Búsqueda encontrada: {len(results)} propiedades")
             return results
             
