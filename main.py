@@ -163,6 +163,12 @@ async def chat(request: ChatRequest):
         detected_filters = detect_filters(text_lower)
         filters.update(detected_filters)
 
+        # ✅ AGREGAR DIAGNÓSTICO AQUÍ
+        print(f"🎯 CONSULTA USUARIO: '{user_text}'")
+        print(f"🔍 FILTROS DETECTADOS: {detected_filters}")
+        print(f"🔍 FILTROS FRONTEND: {filters_from_frontend}")
+        print(f"🔍 FILTROS COMBINADOS: {filters}")
+
         results = None
         search_performed = False
         
@@ -170,6 +176,7 @@ async def chat(request: ChatRequest):
             search_performed = True
             metrics.increment_searches()
             results = query_properties(filters)
+            print(f"📊 RESULTADOS OBTENIDOS: {len(results) if results else 0} propiedades")
 
         historial = get_historial_canal(channel)
         contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial) if historial else ""
@@ -191,17 +198,29 @@ async def chat(request: ChatRequest):
         log_conversation(user_text, answer, channel, response_time, search_performed, len(results) if results else 0)
         metrics.increment_success()
         
-        return ChatResponse(
+        # ✅ AGREGAR DIAGNÓSTICO DE RESPUESTA AQUÍ
+        response_data = ChatResponse(
             response=answer,
             results_count=len(results) if results is not None else None,
             search_performed=search_performed,
             propiedades=results
         )
+        
+        print(f"📤 ENVIANDO RESPUESTA AL FRONTEND:")
+        print(f"   📝 Respuesta: {answer[:100]}...")
+        print(f"   📊 Resultados: {len(results) if results else 0} propiedades")
+        print(f"   🔍 Búsqueda realizada: {search_performed}")
+        if results:
+            for i, prop in enumerate(results[:2]):
+                print(f"   🏠 Prop {i+1}: {prop['titulo']} - {prop['operacion']}")
+        
+        return response_data
     
     except Exception as e:
         metrics.increment_failures()
         print(f"❌ ERROR en endpoint /chat: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Ocurrió un error procesando tu consulta.")
+
 
 @app.get("/filters")
 def get_all_filters():
@@ -220,6 +239,7 @@ def get_properties_endpoint(
 ):
     filters = {k: v for k, v in locals().items() if v is not None and k != 'limit'}
     results = query_properties(filters)
+    print(f"📊 RESULTADOS OBTENIDOS: {len(results) if results else 0} propiedades")
     return results[:limit]
 
 @app.get("/status")

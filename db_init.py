@@ -1,5 +1,5 @@
 ### `backend/db_init.py`
-# Script para inicializar la BD SQLite a partir de properties.json
+# Script para inicializar la BD SQLite a partir de propiedades.json
 import sqlite3
 import json
 import os
