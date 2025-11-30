@@ -43,8 +43,33 @@ export async function enviarMensaje() {
 
     try {
         const data = await enviarConsultaAlBackend(msg, filtros);
+        
+        // ✅ AGREGAR DIAGNÓSTICO AQUÍ
+        console.log("🎯 ===== DIAGNÓSTICO PROPIEDADES =====");
+        console.log("📦 RESPUESTA COMPLETA:", data);
+        console.log("🏠 PROPIEDADES:", data.propiedades);
+        console.log("🔢 CANTIDAD PROPIEDADES:", data.propiedades ? data.propiedades.length : 0);
+        console.log("✅ BÚSQUEDA REALIZADA:", data.search_performed);
+        console.log("📊 CONTADOR RESULTADOS:", data.results_count);
+
+        if (data.propiedades && data.propiedades.length > 0) {
+            console.log("✅ HAY PROPIEDADES - DETALLES:");
+            data.propiedades.forEach((prop, index) => {
+                console.log(`   ${index + 1}. ${prop.titulo} - ${prop.operacion} - $${prop.precio}`);
+            });
+            
+            // 🚀 ACTIVAR VISUALIZACIÓN DE PROPIEDADES
+            console.log("🚀 ACTIVANDO VISUALIZACIÓN DE PROPIEDADES");
+            // Aquí deberías llamar a la función que muestra las propiedades
+            mostrarPropiedadesEnInterfaz(data.propiedades);
+        } else {
+            console.log("❌ NO HAY PROPIEDADES PARA MOSTRAR");
+        }
+        console.log("🎯 ===== FIN DIAGNÓSTICO =====");
+        
         addMessage(data.response || '❌ Respuesta inesperada del servidor');
         statusText.textContent = 'Conectado';
+        
     } catch (error) {
         console.error('❌ Error:', error);
         const demo = obtenerRespuestaDemo(msg);
@@ -58,6 +83,7 @@ export async function enviarMensaje() {
     }
 }
 
+
 export function resetearChat() {
     if (confirm('¿Querés empezar una nueva conversación?')) {
         chatBox.innerHTML = '';
@@ -65,4 +91,43 @@ export function resetearChat() {
         limpiarFiltros();
         addMessage('¡Perfecto! Empezamos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
     }
+}
+// ✅ FUNCIÓN PARA MOSTRAR PROPIEDADES EN LA INTERFAZ
+function mostrarPropiedadesEnInterfaz(propiedades) {
+    console.log("🖥️ MOSTRANDO PROPIEDADES EN INTERFAZ");
+    
+    // Buscar o crear contenedor de propiedades
+    let propiedadesContainer = document.getElementById('propiedadesContainer');
+    
+    if (!propiedadesContainer) {
+        propiedadesContainer = document.createElement('div');
+        propiedadesContainer.id = 'propiedadesContainer';
+        propiedadesContainer.className = 'propiedades-container';
+        chatBox.appendChild(propiedadesContainer);
+    }
+    
+    // Limpiar contenedor
+    propiedadesContainer.innerHTML = '';
+    
+    // Crear elementos para cada propiedad
+    propiedades.forEach(prop => {
+        const propElement = document.createElement('div');
+        propElement.className = 'propiedad-card';
+        propElement.innerHTML = `
+            <div class="propiedad-header">
+                <h4>${prop.titulo}</h4>
+                <span class="precio">$${prop.precio} ${prop.moneda_precio || 'USD'}</span>
+            </div>
+            <div class="propiedad-info">
+                <span>📍 ${prop.barrio}</span>
+                <span>🏠 ${prop.ambientes} amb</span>
+                <span>📏 ${prop.metros_cuadrados} m²</span>
+                <span>📋 ${prop.operacion}</span>
+            </div>
+            ${prop.descripcion ? `<p class="descripcion">${prop.descripcion}</p>` : ''}
+        `;
+        propiedadesContainer.appendChild(propElement);
+    });
+    
+    console.log(`✅ ${propiedades.length} propiedades mostradas en interfaz`);
 }
