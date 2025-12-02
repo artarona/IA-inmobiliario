@@ -19,7 +19,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, --azul 0%,  --rojo 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -225,7 +225,7 @@
             display: flex;
             align-items: center;        /* centra verticalmente */
             justify-content: space-between;
-            background-color: linear-gradient(135deg, var(var(--azul)) 0%, var(var(--rojo)) 100%);
+            background-color: var(--azul);
             padding: 10px 20px;
             }
 
@@ -656,6 +656,16 @@
     <div class="app-container">
         <!-- Panel de Filtros - ÚNICA VERSIÓN -->
         <div class="filters-panel">
+            <!--<div class="filters-header">
+                <div class="logo-container">
+                    <h1>Dante Propiedades</h1>
+                </div>
+                <div class="filters-title">Filtros de Búsqueda</div>
+                <div class="filters-loading" id="filtersLoading">
+                    <small>🔄 Cargando filtros...</small>
+                </div>
+            </div> -->
+
             <div class="filters-header">
    
                 <div class="logo-container">
